@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handicap Scoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        input {
+            padding: 5px;
+            margin: 10px;
+            width: 100px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Handicap Scoring Calculator</h1>
+    <label for="handicap1">Player 1 Handicap:</label>
+    <input type="number" id="handicap1" placeholder="Enter handicap" /><br/>
+
+    <label for="handicap2">Player 2 Handicap:</label>
+    <input type="number" id="handicap2" placeholder="Enter handicap" /><br/>
+
+    <button onclick="calculateScores()">Calculate Scores</button>
+
+    <div class="output" id="output"></div>
+</div>
+
+<script>
+    function calculateScores() {
+        let handicap1 = parseInt(document.getElementById('handicap1').value);
+        let handicap2 = parseInt(document.getElementById('handicap2').value);
+
+        let startingScorePlayer1 = 0;
+        let startingScorePlayer2 = 0;
+        let playToScore = 11;
+
+        let output = '';
+
+        if (isNaN(handicap1) || isNaN(handicap2)) {
+            output = 'Please enter valid handicaps for both players.';
+        } else {
+            if (handicap1 < 0 && handicap2 < 0) {
+                // Minus v Minus: deduct one handicap from the other and play to 11 plus difference.
+                let difference = Math.abs(handicap1 - handicap2);
+                startingScorePlayer1 = handicap1 > handicap2 ? 0 : difference;
+                startingScorePlayer2 = handicap1 < handicap2 ? 0 : difference;
+                playToScore = 11 + difference;
+                output = `Minus v Minus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
+            } else if (handicap1 >= 0 && handicap2 >= 0) {
+                // Plus v Plus: deduct one handicap from the other and play to 11.
+                let difference = Math.abs(handicap1 - handicap2);
+                startingScorePlayer1 = handicap1 < handicap2 ? 0 : difference;
+                startingScorePlayer2 = handicap1 > handicap2 ? 0 : difference;
+                output = `Plus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to 11`;
+            } else if ((handicap1 < 0 && handicap2 >= 0) || (handicap1 >= 0 && handicap2 < 0)) {
+                // Minus v Plus: add the plus to the minus handicap and play to 11 plus the minus handicap.
+                let plusHandicap = Math.max(handicap1, handicap2);
+                let minusHandicap = Math.abs(Math.min(handicap1, handicap2));
+                let total = minusHandicap + plusHandicap;
+                startingScorePlayer1 = handicap1 < handicap2 ? 0 : total;
+                startingScorePlayer2 = handicap1 > handicap2 ? 0 : total;
+                playToScore = 11 + Math.abs(minusHandicap);
+                output = `Minus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
+            }
+
+            // Always require 2-point difference to win.
+            output += `<br>The winner must win by at least 2 points.`;
+        }
+
+        document.getElementById('output').innerHTML = output;
+    }
+</script>
+
+</body>
+</html>
+
