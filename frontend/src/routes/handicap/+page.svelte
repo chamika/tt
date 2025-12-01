@@ -1,85 +1,130 @@
 <script lang="ts">
-    let handicap1: number | null = null;
-    let handicap2: number | null = null;
-    let startingScorePlayer1 = 0;
-    let startingScorePlayer2 = 0;
-    let playToScore = 11;
-    let output = '';
+	import { ArrowLeft, Calculator, Trophy } from 'lucide-svelte';
 
-    function calculateScores() {
-        if (handicap1 === null || handicap2 === null || isNaN(handicap1) || isNaN(handicap2)) {
-            output = 'Please enter valid handicaps for both players.';
-            startingScorePlayer1 = 0;
-            startingScorePlayer2 = 0;
-            playToScore = 11;
-            return;
-        }
+	let handicap1: number | null = null;
+	let handicap2: number | null = null;
+	let startingScorePlayer1 = 0;
+	let startingScorePlayer2 = 0;
+	let playToScore = 11;
+	let output = '';
 
-        let h1 = handicap1;
-        let h2 = handicap2;
+	function calculateScores() {
+		if (handicap1 === null || handicap2 === null || isNaN(handicap1) || isNaN(handicap2)) {
+			output = 'Please enter valid handicaps for both players.';
+			startingScorePlayer1 = 0;
+			startingScorePlayer2 = 0;
+			playToScore = 11;
+			return;
+		}
 
-        if (h1 < 0 && h2 < 0) {
-            // Minus v Minus: deduct one handicap from the other and play to 11 plus difference.
-            let difference = Math.abs(h1 - h2);
-            startingScorePlayer1 = h1 > h2 ? 0 : difference;
-            startingScorePlayer2 = h1 < h2 ? 0 : difference;
-            playToScore = 11 + difference;
-            output = `Minus v Minus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
-        } else if (h1 >= 0 && h2 >= 0) {
-            // Plus v Plus: deduct one handicap from the other and play to 11.
-            let difference = Math.abs(h1 - h2);
-            startingScorePlayer1 = h1 < h2 ? 0 : difference;
-            startingScorePlayer2 = h1 > h2 ? 0 : difference;
-            playToScore = 11; // Reset playToScore for this case
-            output = `Plus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to 11`;
-        } else { // (h1 < 0 && h2 >= 0) || (h1 >= 0 && h2 < 0) - Minus v Plus
-            // Minus v Plus: add the plus to the minus handicap and play to 11 plus the minus handicap.
-            let plusHandicap = Math.max(h1, h2);
-            let minusHandicap = Math.abs(Math.min(h1, h2));
-            let total = minusHandicap + plusHandicap;
-            startingScorePlayer1 = h1 < h2 ? 0 : total;
-            startingScorePlayer2 = h1 > h2 ? 0 : total;
-            playToScore = 11 + minusHandicap; // Use absolute value
-            output = `Minus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
-        }
+		let h1 = handicap1;
+		let h2 = handicap2;
 
-        // Always require 2-point difference to win.
-        output += `<br>The winner must win by at least 2 points.`;
-    }
+		if (h1 < 0 && h2 < 0) {
+			// Minus v Minus: deduct one handicap from the other and play to 11 plus difference.
+			let difference = Math.abs(h1 - h2);
+			startingScorePlayer1 = h1 > h2 ? 0 : difference;
+			startingScorePlayer2 = h1 < h2 ? 0 : difference;
+			playToScore = 11 + difference;
+			output = `Minus v Minus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
+		} else if (h1 >= 0 && h2 >= 0) {
+			// Plus v Plus: deduct one handicap from the other and play to 11.
+			let difference = Math.abs(h1 - h2);
+			startingScorePlayer1 = h1 < h2 ? 0 : difference;
+			startingScorePlayer2 = h1 > h2 ? 0 : difference;
+			playToScore = 11; // Reset playToScore for this case
+			output = `Plus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to 11`;
+		} else {
+			// (h1 < 0 && h2 >= 0) || (h1 >= 0 && h2 < 0) - Minus v Plus
+			// Minus v Plus: add the plus to the minus handicap and play to 11 plus the minus handicap.
+			let plusHandicap = Math.max(h1, h2);
+			let minusHandicap = Math.abs(Math.min(h1, h2));
+			let total = minusHandicap + plusHandicap;
+			startingScorePlayer1 = h1 < h2 ? 0 : total;
+			startingScorePlayer2 = h1 > h2 ? 0 : total;
+			playToScore = 11 + minusHandicap; // Use absolute value
+			output = `Minus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
+		}
+
+		// Always require 2-point difference to win.
+		output += `<br>The winner must win by at least 2 points.`;
+	}
 </script>
 
-<div class="container">
-    <h1>Handicap Scoring Calculator</h1>
-    <label for="handicap1">Player 1 Handicap:</label>
-    <input type="number" id="handicap1" placeholder="Enter handicap" bind:value={handicap1} /><br/>
+<div class="max-w-2xl mx-auto animate-fadeIn">
+	<a
+		href="/"
+		class="flex items-center text-sm text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 mb-6 transition-colors"
+	>
+		<ArrowLeft size={16} class="mr-2" />
+		Back to Tools
+	</a>
 
-    <label for="handicap2">Player 2 Handicap:</label>
-    <input type="number" id="handicap2" placeholder="Enter handicap" bind:value={handicap2} /><br/>
+	<div
+		class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden"
+	>
+		<div
+			class="p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
+		>
+			<div class="flex items-center gap-3">
+				<div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
+					<Calculator size={24} />
+				</div>
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Handicap Calculator</h2>
+			</div>
+		</div>
 
-    <button on:click={calculateScores}>Calculate Scores</button>
+		<div class="p-6 space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div class="space-y-2">
+					<label
+						class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+						for="handicap1">Player 1 Handicap</label
+					>
+					<input
+						type="number"
+						id="handicap1"
+						bind:value={handicap1}
+						placeholder="Enter handicap"
+						class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white transition-all"
+					/>
+				</div>
+				<div class="space-y-2">
+					<label
+						class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+						for="handicap2">Player 2 Handicap</label
+					>
+					<input
+						type="number"
+						id="handicap2"
+						bind:value={handicap2}
+						placeholder="Enter handicap"
+						class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white transition-all"
+					/>
+				</div>
+			</div>
 
-    <div class="output">
-        {@html output}
-    </div>
+			<button
+				on:click={calculateScores}
+				class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+			>
+				Calculate Scores
+			</button>
+
+			{#if output}
+				<div
+					class="mt-6 p-6 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700 text-center animate-slideUp"
+				>
+					<div
+						class="inline-flex items-center justify-center p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full mb-3"
+					>
+						<Trophy size={24} />
+					</div>
+					<p class="text-gray-600 dark:text-gray-400 font-medium">
+						{@html output}
+					</p>
+				</div>
+			{/if}
+		</div>
+	</div>
 </div>
-
-<style>
-    .container {
-        max-width: 500px;
-        margin: 0 auto;
-        text-align: center;
-    }
-    input {
-        padding: 5px;
-        margin: 10px;
-        width: 100px;
-    }
-    button {
-        padding: 10px 20px;
-        margin-top: 20px;
-        cursor: pointer;
-    }
-    .output {
-        margin-top: 20px;
-    }
-</style>
