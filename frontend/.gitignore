@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+
+# IDEs and editors
+.vscode
+.idea
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# dotenv files
+.env
+.env.*
+!.env.template # exception to not ignore .env.template
+
+# SvelteKit
+.svelte-kit
+/build
+
+# Vite
+.vite
+
+# TypeScript
+*.tsbuildinfo
+
+# Playwright
+/test-results/
+.cache/

@@ -1,0 +1,20 @@
+# dependencies
+/node_modules
+
+# Cloudflare Workers / Wrangler
+.wrangler
+/dist
+/build
+.env
+.env.*
+!.env.template # exception to not ignore .env.template
+
+# IDEs and editors
+.vscode
+.idea
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# TypeScript
+*.tsbuildinfo
