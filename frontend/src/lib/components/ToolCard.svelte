@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { Calendar, Calculator, Trophy } from 'lucide-svelte';
+	import type { ComponentType } from 'svelte';
 
 	let { title, description, icon, href, disabled = false, badge = '' } = $props();
 
-	const icons = {
+	const icons: Record<string, ComponentType> = {
 		Calculator: Calculator,
 		Calendar: Calendar,
 		Trophy: Trophy
 	};
 
-	const iconComponent = typeof icon === 'string' ? icons[icon] : icon;
+	const Icon = typeof icon === 'string' ? icons[icon] : icon;
 </script>
 
 <a
@@ -18,22 +19,25 @@
       relative p-6 rounded-2xl border transition-all duration-300 ease-in-out group
       ${
 				disabled
-					? 'opacity-60 cursor-not-allowed'
+					? 'opacity-60 cursor-not-allowed pointer-events-none'
 					: 'cursor-pointer hover:-translate-y-1 hover:shadow-xl'
 			}
-      dark:bg-slate-800 dark:border-slate-700 dark:hover:border-emerald-500/50
-      bg-white border-gray-200 hover:border-emerald-500/50 shadow-sm
+      dark:bg-slate-800 dark:border-slate-700
+      ${disabled ? '' : 'dark:hover:border-emerald-500/50'}
+      bg-white border-gray-200
+      ${disabled ? '' : 'hover:border-emerald-500/50'}
+      shadow-sm
     `}
 >
 	<div class="flex items-start justify-between mb-4">
 		<div
 			class={`p-3 rounded-lg ${
 				disabled
-					? 'bg-gray-100 dark:bg-slate-700'
+					? 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-400'
 					: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
 			}`}
 		>
-			<svelte:component this={iconComponent} size={24} />
+			<Icon size={24} />
 		</div>
 		{#if badge}
 			<span

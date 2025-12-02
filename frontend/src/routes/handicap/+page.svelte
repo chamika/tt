@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowLeft, Calculator, Trophy } from 'lucide-svelte';
+	import { ArrowLeft, Calculator, Trophy, Info } from 'lucide-svelte';
 
 	let handicap1: number | null = null;
 	let handicap2: number | null = null;
@@ -110,6 +110,18 @@
 			>
 				Calculate Scores
 			</button>
+
+			<div class="flex items-start gap-2 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20">
+				<div class="text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0">
+					<Info size={18} />
+				</div>
+				<p class="text-sm text-yellow-700 dark:text-yellow-500">
+					<strong>Plus v Plus:</strong> Deduct one handicap from the other and play to 11.<br>
+					<strong>Minus v Minus:</strong> Deduct one handicap from the other and play to 11 plus difference.<br>
+					<strong>Minus v Plus:</strong> Add the plus to the minus handicap and play to 11 plus the minus handicap.<br>
+					The winner must win by at least 2 points.
+				</p>
+			</div>
 
 			{#if output}
 				<div
