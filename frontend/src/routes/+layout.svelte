@@ -7,7 +7,7 @@
 	let { children } = $props();
 </script>
 
-<div class={`min-h-screen transition-colors duration-300 ${$darkMode ? 'dark bg-slate-900' : 'bg-gray-50'}`}>
+<div class="min-h-screen transition-colors duration-300 bg-gray-50 dark:bg-slate-900">
 	<Header />
 	<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 		{@render children()}
