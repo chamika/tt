@@ -1,6 +1,5 @@
-name = "worker"
+name = "tabletennis"
 compatibility_date = "2025-12-01"
-account_id = "" # add your Cloudflare account id here
 workers_dev = true
 type = "javascript"
 main = "src/index.ts"

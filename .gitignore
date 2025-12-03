@@ -1,0 +1,6 @@
+# IDEs and editors
+.vscode
+.idea
+.DS_Store
+*.sublime-project
+*.sublime-workspace

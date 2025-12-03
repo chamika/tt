@@ -1,26 +1,40 @@
 <script lang="ts">
-  const tools = [
-    { title: 'Handicap Calculator', href: '/handicap', description: 'Calculate handicap scores.' },
-    { title: 'Availability Tracker', href: '/availability', description: 'Track match availability (coming soon).' }
-  ];
+	import ToolCard from '$lib/components/ToolCard.svelte';
+	import { Trophy } from 'lucide-svelte';
 </script>
 
-<style>
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-  .tile { padding: 1.2rem; border-radius: 8px; border: 1px solid #ddd; text-decoration: none; color: inherit; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-  .tile:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
-  h1 { margin-bottom: 0.5rem; }
-</style>
+<div class="animate-fadeIn">
+	<div class="text-center mb-12">
+		<h2 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">Elevate Your Game</h2>
+		<p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+			Select a tool below to manage your matches, calculate scores, and track progress.
+		</p>
+	</div>
 
-<main>
-  <h1>Table Tennis Tools</h1>
-  <p>Choose a tool:</p>
-  <div class="grid">
-    {#each tools as t}
-      <a class="tile" href={t.href} aria-label={t.title}>
-        <h2>{t.title}</h2>
-        <p>{t.description}</p>
-      </a>
-    {/each}
-  </div>
-</main>
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+		<ToolCard
+			title="Handicap Calculator"
+			description="Fairly match players of different skill levels by calculating starting scores based on rating."
+			icon="Calculator"
+			href="/handicap"
+		/>
+
+		<ToolCard
+			title="Availability Tracker"
+			description="Coordinate with your league or friends to find the best time for your next match."
+			icon="Calendar"
+			href="/availability"
+			disabled={true}
+			badge="Coming Soon"
+		/>
+
+		<ToolCard
+			title="Tournament Brackets"
+			description="Generate single or double elimination brackets for your local club tournaments."
+			icon={Trophy}
+			href="/"
+			disabled={true}
+			badge="Planned"
+		/>
+	</div>
+</div>
