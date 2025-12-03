@@ -29,7 +29,6 @@ npm run dev
 ```bash
 cd worker
 npm install
-# supply your Cloudflare account id in wrangler.toml before publishing
 npx wrangler dev
 ```
 
@@ -38,6 +37,6 @@ Deploy notes
 - Worker: publish with `npx wrangler publish` (fill `account_id` in `worker/wrangler.toml`).
 
 Next steps
-- Migrate the existing `index.html` UI into `frontend/src/routes/handicap/+page.svelte` (or expand that page to match the current functionality).
-- Wire the frontend to the Worker API endpoints and add persistence (Cloudflare KV or Durable Objects) if needed.
+- Wire the frontend to the Worker API endpoints health endpoint
+- Implement availability tracker
 
