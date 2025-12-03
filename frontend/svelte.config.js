@@ -16,7 +16,7 @@ const config = {
 			config: undefined,
 			fallback: 'plaintext',
 			routes: {
-				include: ['/availability-tracker'],
+				include: ['/*'],
 				exclude: ['<all>']
 			}
 		})
