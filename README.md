@@ -52,6 +52,11 @@ npx playwright install
 npm run test:e2e
 ```
 
+### Run all tests
+```bash
+npm run test
+```
+
 ### Deploy notes
 - Frontend: build with `npm run build` in `frontend/` and deploy to Cloudflare Pages. SvelteKit supports the Cloudflare adapter for Pages/Workers.
 - Worker: publish with `npx wrangler publish` (fill `account_id` in `worker/wrangler.toml`).
