@@ -68,15 +68,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Worker usually implies TypeScript in this context, but without a test script or tsconfig,
-      # we can at least verify dependencies install correctly.
-      # If there was a 'test' script, we would run it here.
-      # We can try to run a dry-run publish if wrangler supports it without auth, but usually it requires auth.
-      
-      - name: Type Check (if tsconfig exists)
-        run: |
-          if [ -f tsconfig.json ]; then
-            npx tsc --noEmit
-          else
-            echo "No tsconfig.json found, skipping type check."
-          fi
+      - name: Build
+        run: npx wrangler deploy --dry-run --outdir=dist
