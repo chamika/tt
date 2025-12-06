@@ -1,0 +1,20 @@
+I need you to plan ELTTL Availability Tracker feature.
+
+This is for keeping track of players and their availability in Edinburgh and Lothians table tennis league. The requirements should be like this.
+
+1. When user navigates to the Availability tracker option, it should ask for a Team Fixture Link.
+2. The team fixture link will contain the player names (Team members), match schedule such as date, starting time, Home team, away team. Here is a real link for you to read data https://elttl.interactive.co.uk/teams/view/839
+
+3. After user submitting the fixture link, it should call out to the backend. The backend should webscrape the link and build a API  model that allow users to represent player availabilties. 
+
+4. Users can save this availability and the backend should generate a unguessable unique link so that anyone can visit and update their availability. No authentication required as the unique URL will consider as a private link.
+
+5. A sample excel spreadsheet driven availability tracker is attached in @TT Team 4 2025.xlsx for the URL https://elttl.interactive.co.uk/teams/view/839
+
+6. The availability tracker user interface should be mobile friendly unlike spreadsheet. It should easy to mark availability and show final schedule and summaries. Less clicks are preffered. Table structure isn't great for mobile friendly user interface.
+
+7. Tha backend should save data in cloudflare KV store. Therefore, the data persistence layer has to be implemented as well.
+
+8. Obviously, tests are needed.
+
+Plan the above feature, breakdown into tasks and document them in a markdown file in ./plan directory
