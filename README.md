@@ -12,8 +12,8 @@ This repository now contains two main pieces:
 - `frontend/` — A SvelteKit (TypeScript) frontend scaffold. The home page (`src/routes/+page.svelte`) contains tiles that link to individual tools (e.g. `/handicap`).
 - `worker/` — A Cloudflare Worker scaffold (TypeScript) using `Hono` for lightweight API endpoints. It exposes `/api/handicap` and `/api/health` handlers.
 
-Quick start (local)
--
+## Quick start (local)
+
 Prereqs: Node 18+, npm, and `wrangler` for Cloudflare Workers.
 
 1. Frontend
@@ -32,11 +32,36 @@ npm install
 npx wrangler dev
 ```
 
-Deploy notes
+## Running Tests
+The frontend includes both end-to-end tests (Playwright) and unit tests (Vitest).
+
+```bash
+cd frontend
+```
+
+### Unit Tests
+```bash
+npm run test:unit
+```
+
+### End-to-End Tests
+```bash
+# Install Playwright browsers (first time only)
+npx playwright install
+# Run tests
+npm run test:e2e
+```
+
+### Run all tests
+```bash
+npm run test
+```
+
+### Deploy notes
 - Frontend: build with `npm run build` in `frontend/` and deploy to Cloudflare Pages. SvelteKit supports the Cloudflare adapter for Pages/Workers.
 - Worker: publish with `npx wrangler publish` (fill `account_id` in `worker/wrangler.toml`).
 
-Next steps
+### Next steps
 - Wire the frontend to the Worker API endpoints health endpoint
 - Implement availability tracker
 
