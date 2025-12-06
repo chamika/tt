@@ -1,50 +1,14 @@
 <script lang="ts">
-	import { ArrowLeft, Calculator, Trophy, Info } from 'lucide-svelte';
+	import { ArrowLeft, Calculator, Trophy, Info } from "lucide-svelte";
+	import { calculateScores as calcScores } from "$lib/handicap/scoreCalculator";
 
 	let handicap1: number | null = null;
 	let handicap2: number | null = null;
-	let startingScorePlayer1 = 0;
-	let startingScorePlayer2 = 0;
-	let playToScore = 11;
-	let output = '';
+	let output = "";
 
 	function calculateScores() {
-		if (handicap1 === null || handicap2 === null || isNaN(handicap1) || isNaN(handicap2)) {
-			output = 'Please enter valid handicaps for both players.';
-			startingScorePlayer1 = 0;
-			startingScorePlayer2 = 0;
-			playToScore = 11;
-			return;
-		}
-
-		let h1 = handicap1;
-		let h2 = handicap2;
-
-		if (h1 < 0 && h2 < 0) {
-			// Minus v Minus: deduct one handicap from the other and play to 11 plus difference.
-			let difference = Math.abs(h1 - h2);
-			startingScorePlayer1 = h1 > h2 ? 0 : difference;
-			startingScorePlayer2 = h1 < h2 ? 0 : difference;
-			playToScore = 11 + difference;
-			output = `Minus v Minus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
-		} else if (h1 >= 0 && h2 >= 0) {
-			// Plus v Plus: deduct one handicap from the other and play to 11.
-			let difference = Math.abs(h1 - h2);
-			startingScorePlayer1 = h1 < h2 ? 0 : difference;
-			startingScorePlayer2 = h1 > h2 ? 0 : difference;
-			playToScore = 11; // Reset playToScore for this case
-			output = `Plus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to 11`;
-		} else {
-			// (h1 < 0 && h2 >= 0) || (h1 >= 0 && h2 < 0) - Minus v Plus
-			// Minus v Plus: add the plus to the minus handicap and play to 11 plus the minus handicap.
-			let plusHandicap = Math.max(h1, h2);
-			let minusHandicap = Math.abs(Math.min(h1, h2));
-			let total = minusHandicap + plusHandicap;
-			startingScorePlayer1 = h1 < h2 ? 0 : total;
-			startingScorePlayer2 = h1 > h2 ? 0 : total;
-			playToScore = 11 + minusHandicap; // Use absolute value
-			output = `Minus v Plus: Start at ${startingScorePlayer1}-${startingScorePlayer2} and play to ${playToScore}`;
-		}
+		const result = calcScores(handicap1, handicap2);
+		output = result.output;
 	}
 </script>
 
@@ -64,10 +28,14 @@
 			class="p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50"
 		>
 			<div class="flex items-center gap-3">
-				<div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
+				<div
+					class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg"
+				>
 					<Calculator size={24} />
 				</div>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Handicap Calculator</h2>
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+					Handicap Calculator
+				</h2>
 			</div>
 		</div>
 
@@ -118,19 +86,26 @@
 						<Trophy size={24} />
 					</div>
 					<p class="text-gray-600 dark:text-gray-400 font-medium">
-						{@html output}
+						{output}
 					</p>
 				</div>
 			{/if}
 
-			<div class="flex items-start gap-2 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20">
-				<div class="text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0">
+			<div
+				class="flex items-start gap-2 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20"
+			>
+				<div
+					class="text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0"
+				>
 					<Info size={18} />
 				</div>
 				<p class="text-sm text-yellow-700 dark:text-yellow-500">
-					<strong>Plus v Plus:</strong> Deduct one handicap from the other and play to 11.<br>
-					<strong>Minus v Minus:</strong> Deduct one handicap from the other and play to 11 plus difference.<br>
-					<strong>Minus v Plus:</strong> Add the plus to the minus handicap and play to 11 plus the minus handicap.<br>
+					<strong>Plus v Plus:</strong> Deduct one handicap from the
+					other and play to 11.<br />
+					<strong>Minus v Minus:</strong> Deduct one handicap from the
+					other and play to 11 plus difference.<br />
+					<strong>Minus v Plus:</strong> Add the plus to the minus
+					handicap and play to 11 plus the minus handicap.<br />
 					The winner must win by at least 2 points.
 				</p>
 			</div>
