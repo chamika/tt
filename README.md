@@ -21,7 +21,7 @@ Prereqs: Node 18+, npm, and `wrangler` for Cloudflare Workers.
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host
 ```
 
 2. Worker (local dev with Wrangler)
@@ -29,7 +29,7 @@ npm run dev
 ```bash
 cd worker
 npm install
-npx wrangler dev
+npx wrangler dev --ip 0.0.0.0
 ```
 
 ## Running Tests

@@ -136,13 +136,6 @@
 						>
 							{player.name}
 						</span>
-						{#if isAvailable(player.id)}
-							<span
-								class="text-xs text-emerald-600 dark:text-emerald-400 font-medium"
-							>
-								Available
-							</span>
-						{/if}
 					</label>
 					{#if isAvailable(player.id)}
 						<button
