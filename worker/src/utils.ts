@@ -16,18 +16,64 @@ export function now(): number {
 
 /**
  * Parse date string (e.g., "Sep 16") and convert to ISO format
- * Assumes current year if date has passed in current year, otherwise next year
+ * Handles season transition: August-March (Aug of current year through March of next year)
+ * 
+ * Logic:
+ * - If import happens Aug-Dec (months 8-12): Season runs from current year through next year
+ * - If import happens Jan-Jul (months 1-7): Season runs from previous year through current year
  */
-export function parseMatchDate(dateStr: string, year?: number): string {
-  const currentYear = year || new Date().getFullYear();
-  const date = new Date(`${dateStr} ${currentYear}`);
+export function parseMatchDate(dateStr: string, referenceDate?: Date): string {
+  const now = referenceDate || new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
   
-  // If the date is in the past (more than a week ago), assume next year
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  if (date.getTime() < weekAgo) {
-    date.setFullYear(currentYear + 1);
+  // Parse the fixture date string (e.g., "Sep 16" -> month=9, day=16)
+  const parts = dateStr.trim().split(/\s+/);
+  if (parts.length !== 2) {
+    throw new Error(`Invalid date format: ${dateStr}`);
   }
   
+  const monthStr = parts[0];
+  const day = parseInt(parts[1], 10);
+  
+  const monthMap: Record<string, number> = {
+    'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+    'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+  };
+  const fixtureMonth = monthMap[monthStr];
+  
+  if (!fixtureMonth) {
+    throw new Error(`Invalid month in date string: ${dateStr}`);
+  }
+  
+  if (isNaN(day) || day < 1 || day > 31) {
+    throw new Error(`Invalid day in date string: ${dateStr}`);
+  }
+  
+  // Determine the season year range
+  let seasonStartYear: number;
+  
+  if (currentMonth >= 8) {
+    // Import is Aug-Dec: Season is current year through next year
+    seasonStartYear = currentYear;
+  } else {
+    // Import is Jan-Jul: Season is previous year through current year
+    seasonStartYear = currentYear - 1;
+  }
+  
+  // Determine which year this fixture belongs to
+  let fixtureYear: number;
+  
+  if (fixtureMonth >= 8) {
+    // Aug-Dec fixtures are in the season start year
+    fixtureYear = seasonStartYear;
+  } else {
+    // Jan-Jul fixtures are in the season end year (next year)
+    fixtureYear = seasonStartYear + 1;
+  }
+  
+  // Create date in UTC to avoid timezone issues
+  const date = new Date(Date.UTC(fixtureYear, fixtureMonth - 1, day));
   return date.toISOString().split('T')[0]; // YYYY-MM-DD format
 }
 

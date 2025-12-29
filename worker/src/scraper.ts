@@ -1,6 +1,5 @@
 import { parse } from 'node-html-parser';
 import type { ScrapedTeamData, ScrapedFixture } from './types';
-import { parseMatchDate } from './utils';
 
 /**
  * Scrape team data from ELTTL team page
