@@ -125,15 +125,6 @@
 ## Phase 4: UI Polish (Week 4)
 
 ### Design Implementation
-- [ ] Match card_view.png design exactly
-  - [ ] Card layout and spacing
-  - [ ] Typography
-  - [ ] Colors and borders
-  - [ ] Match images/backgrounds
-- [ ] Match player_summary.png design exactly
-  - [ ] Card layout
-  - [ ] Player silhouette graphics
-  - [ ] Stats formatting
 - [ ] Implement dark mode support
   - [ ] Dark mode colors for all components
   - [ ] Toggle respects existing darkMode store
@@ -158,8 +149,8 @@
 - [ ] Add empty states (no fixtures, no players)
 - [ ] Add error messages with retry options
 - [ ] Add success notifications
-- [ ] Add optimistic updates
-
+- [ ] Add opmistic updates
+ti
 ---
 
 ## Phase 5: Features & Testing (Week 5)

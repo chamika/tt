@@ -53,17 +53,15 @@
 		const previousSelection = finalSelections[fixtureId] || [];
 		finalSelections[fixtureId] = playerIds;
 
-		if (playerIds.length === 3) {
-			try {
-				await setFinalSelection(data.team.id, fixtureId, playerIds);
-				// Reload summaries after selection change
-				await loadSummaries();
-			} catch (err) {
-				// Revert on error
-				finalSelections[fixtureId] = previousSelection;
-				error = 'Failed to update selection';
-				setTimeout(() => error = null, 3000);
-			}
+		try {
+			await setFinalSelection(data.team.id, fixtureId, playerIds);
+			// Reload summaries after selection change
+			await loadSummaries();
+		} catch (err) {
+			// Revert on error
+			finalSelections[fixtureId] = previousSelection;
+			error = 'Failed to update selection';
+			setTimeout(() => error = null, 3000);
 		}
 	}
 

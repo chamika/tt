@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Calendar, MapPin } from "lucide-svelte";
+	import { Calendar, MapPin, Plus, X } from "lucide-svelte";
 	import type {
 		Fixture,
 		Player,
@@ -114,32 +114,54 @@
 				Availability ({availableCount}/{players.length})
 			</h4>
 			{#each players as player}
-				<label
-					class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
+				<div
+					class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
 				>
-					<input
-						type="checkbox"
-						checked={isAvailable(player.id)}
-						onchange={(e) =>
-							onAvailabilityChange(
-								player.id,
-								e.currentTarget.checked,
-							)}
-						class="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-					/>
-					<span
-						class="text-sm text-gray-700 dark:text-gray-300 flex-1"
-					>
-						{player.name}
-					</span>
-					{#if isAvailable(player.id)}
+					<label class="flex items-center gap-3 flex-1 cursor-pointer">
+						<input
+							type="checkbox"
+							checked={isAvailable(player.id)}
+							disabled={isSelected(player.id)}
+							onchange={(e) =>
+								onAvailabilityChange(
+									player.id,
+									e.currentTarget.checked,
+								)}
+							class="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500 dark:focus:ring-emerald-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+						/>
 						<span
-							class="text-xs text-emerald-600 dark:text-emerald-400 font-medium"
+							class="text-sm text-gray-700 dark:text-gray-300"
 						>
-							Available
+							{player.name}
 						</span>
+						{#if isAvailable(player.id)}
+							<span
+								class="text-xs text-emerald-600 dark:text-emerald-400 font-medium"
+							>
+								Available
+							</span>
+						{/if}
+					</label>
+					{#if isAvailable(player.id)}
+						<button
+							type="button"
+							onclick={() => toggleSelection(player.id)}
+							disabled={!isSelected(player.id) &&
+								finalSelections.length >= 3}
+							class="p-1.5 rounded-md transition-colors {isSelected(
+								player.id,
+							)
+								? 'bg-red-600 hover:bg-red-700 text-white'
+								: 'bg-green-600 hover:bg-green-700 text-white'} disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{#if isSelected(player.id)}
+								<X size={16} />
+							{:else}
+								<Plus size={16} />
+							{/if}
+						</button>
 					{/if}
-				</label>
+				</div>
 			{/each}
 		</div>
 
@@ -163,32 +185,30 @@
 			</div>
 
 			<div class="space-y-2">
-				{#each players.filter((p) => isAvailable(p.id)) as player}
-					<label
-						class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
-					>
-						<input
-							type="checkbox"
-							checked={isSelected(player.id)}
-							disabled={!isSelected(player.id) &&
-								finalSelections.length >= 3}
-							onchange={() => toggleSelection(player.id)}
-							class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-						/>
-						<span
-							class="text-sm text-gray-700 dark:text-gray-300 flex-1"
+				{#if finalSelections.length > 0}
+					{#each players.filter((p) => isSelected(p.id)) as player}
+						<div
+							class="flex items-center gap-3 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"
 						>
-							{player.name}
-						</span>
-						{#if isSelected(player.id)}
+							<span
+								class="text-sm text-gray-700 dark:text-gray-300 flex-1"
+							>
+								{player.name}
+							</span>
 							<span
 								class="text-xs text-blue-600 dark:text-blue-400 font-medium"
 							>
 								Selected
 							</span>
-						{/if}
-					</label>
-				{/each}
+						</div>
+					{/each}
+				{:else}
+					<div
+						class="text-sm text-gray-500 dark:text-gray-400 text-center py-4"
+					>
+						No players selected yet
+					</div>
+				{/if}
 			</div>
 
 			{#if hasWarning}

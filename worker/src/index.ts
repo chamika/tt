@@ -183,9 +183,9 @@ app.post('/api/availability/:teamId/fixture/:fixtureId/selection', async (c) => 
       return c.json({ error: 'playerIds must be an array' }, 400);
     }
 
-    // Validate exactly 3 players
-    if (body.playerIds.length !== 3) {
-      return c.json({ error: 'Must select exactly 3 players' }, 400);
+    // Validate 0-3 players
+    if (body.playerIds.length > 3) {
+      return c.json({ error: 'Maximum 3 players can be selected' }, 400);
     }
 
     const db = new DatabaseService(c.env.DB);
