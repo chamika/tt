@@ -20,7 +20,7 @@ The feature will include an "Import Team" tool. When a user provides a link like
 1. **Fetch the HTML** from the ELTTL site.  
 2. **Parse the Fixtures:** Extract Match Date, Time, Home Team, and Away Team.  
 3. **Parse the Squad:** Identify player names listed in the team profile.  
-4. **Initialize Database:** Store this in a DB (like Cloudflare D1 or Supabase) linked to a new UUID.
+4. **Initialize Database:** Store this in a DB (like Workers KV) linked to a new UUID.
 
 #### **C. Final Selection & Summary Logic**
 
