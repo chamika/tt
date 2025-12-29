@@ -77,48 +77,48 @@
 
 ---
 
-## Phase 3: Frontend Foundation (Week 3)
+## Phase 3: Frontend Foundation (Week 3) ✅ COMPLETED
 
 ### Route Structure
-- [ ] Create frontend/src/routes/availability/+page.svelte (landing page)
-- [ ] Create frontend/src/routes/availability/new/+page.svelte (import form)
-- [ ] Create frontend/src/routes/availability/[teamId]/+page.svelte (main tracker)
-- [ ] Create frontend/src/routes/availability/[teamId]/+page.server.ts (SSR data loading)
-- [ ] Add navigation links from home page
-- [ ] Update ToolCard on home page to enable availability tracker
+- [x] Create frontend/src/routes/availability/+page.svelte (landing page)
+- [x] Create frontend/src/routes/availability/new/+page.svelte (import form)
+- [x] Create frontend/src/routes/availability/[teamId]/+page.svelte (main tracker)
+- [x] Create frontend/src/routes/availability/[teamId]/+page.server.ts (SSR data loading)
+- [x] Add navigation links from home page
+- [x] Update ToolCard on home page to enable availability tracker
 
 ### API Client
-- [ ] Create frontend/src/lib/api/availability.ts
-  - [ ] importTeam(elttlUrl)
-  - [ ] getTeamData(teamId)
-  - [ ] updateAvailability(teamId, fixtureId, playerId, isAvailable)
-  - [ ] setFinalSelection(teamId, fixtureId, playerIds)
-  - [ ] getPlayerSummary(teamId)
-- [ ] Add error handling
-- [ ] Add loading states
-- [ ] Add TypeScript types for API responses
+- [x] Create frontend/src/lib/api/availability.ts
+  - [x] importTeam(elttlUrl)
+  - [x] getTeamData(teamId)
+  - [x] updateAvailability(teamId, fixtureId, playerId, isAvailable)
+  - [x] setFinalSelection(teamId, fixtureId, playerIds)
+  - [x] getPlayerSummary(teamId)
+- [x] Add error handling
+- [x] Add loading states
+- [x] Add TypeScript types for API responses
 
 ### Basic Components
-- [ ] Create frontend/src/lib/components/availability/AvailabilityImportForm.svelte
-  - [ ] URL input field
-  - [ ] Submit button
-  - [ ] Loading state
-  - [ ] Error handling
-  - [ ] Validation
-- [ ] Create frontend/src/lib/components/availability/FixtureCard.svelte
-  - [ ] Match details (date, time, home, away)
-  - [ ] Player availability checkboxes
-  - [ ] Final selection UI (max 3)
-  - [ ] Validation indicator
-- [ ] Create frontend/src/lib/components/availability/PlayerSummaryCard.svelte
-  - [ ] Player name
-  - [ ] Player icon/avatar
-  - [ ] Stats display (played, scheduled, total)
-  - [ ] Selection rate
-- [ ] Create frontend/src/lib/components/availability/AvailabilityTracker.svelte
-  - [ ] Main container
-  - [ ] Fixtures grid
-  - [ ] Player summary section
+- [x] Create frontend/src/lib/components/availability/AvailabilityImportForm.svelte
+  - [x] URL input field
+  - [x] Submit button
+  - [x] Loading state
+  - [x] Error handling
+  - [x] Validation
+- [x] Create frontend/src/lib/components/availability/FixtureCard.svelte
+  - [x] Match details (date, time, home, away)
+  - [x] Player availability checkboxes
+  - [x] Final selection UI (max 3)
+  - [x] Validation indicator
+- [x] Create frontend/src/lib/components/availability/PlayerSummaryCard.svelte
+  - [x] Player name
+  - [x] Player icon/avatar
+  - [x] Stats display (played, scheduled, total)
+  - [x] Selection rate
+- [x] Create frontend/src/lib/components/availability/AvailabilityTracker.svelte
+  - [x] Main container
+  - [x] Fixtures grid
+  - [x] Player summary section
 
 ---
 

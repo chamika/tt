@@ -24,11 +24,10 @@
 
 		<ToolCard
 			title="ELTTL Availability Tracker"
-			description="Coordinate your ELTTL league matches with you team."
+			description="Coordinate your ELTTL league matches with your team."
 			icon="Calendar"
 			href="/availability"
-			disabled={true}
-			badge="Coming Soon"
+			badge="New"
 		/>
 
 		<ToolCard
