@@ -125,6 +125,9 @@
 ## Phase 4: UI Polish (Week 4)
 
 ### Design Implementation
+- [ ] Fixture card styling
+  - [ ] Header should have match date, teams playing and venue
+  - [ ] The spacing between player rows should be consistent irrespective of the selection/remove buttons
 - [ ] Implement dark mode support
   - [ ] Dark mode colors for all components
   - [ ] Toggle respects existing darkMode store
@@ -150,7 +153,7 @@
 - [ ] Add error messages with retry options
 - [ ] Add success notifications
 - [ ] Add opmistic updates
-ti
+
 ---
 
 ## Phase 5: Features & Testing (Week 5)
@@ -170,12 +173,6 @@ ti
   - [ ] Games scheduled (future with final selection)
   - [ ] Total games
   - [ ] Selection rate percentage
-
-### Real-time Updates
-- [ ] Implement polling for data updates
-- [ ] Add optimistic UI updates
-- [ ] Add conflict resolution
-- [ ] Consider WebSockets for future enhancement
 
 ### Testing
 - [ ] Write unit tests for scraper
@@ -239,7 +236,10 @@ ti
 - [ ] Add multi-season support
 - [ ] Add mobile app (PWA)
 - [ ] Add WhatsApp/SMS integration
-
+- [ ] Implement polling for data updates
+- [ ] Add optimistic UI updates
+- [ ] Add conflict resolution
+- [ ] Consider WebSockets for future enhancement
 ---
 
 ## Notes
@@ -263,5 +263,5 @@ final_selections (id, fixture_id, player_id, selected_at)
 ### Key Validation Rules
 - Final selection must be exactly 3 players per match
 - Cannot select more players than are available
-- Past matches are read-only
+- Past matches are read-only unless explicitly allowed
 - ELTTL URL must be valid format: https://elttl.interactive.co.uk/teams/view/{id}
