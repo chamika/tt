@@ -11,7 +11,7 @@
 
 	// Local state for optimistic updates
 	let availability = $state({ ...data.availability });
-	let finalSelections = $state({ ...data.finalSelections });
+	let finalSelections = $state<Record<string, string[]>>({ ...(data.finalSelections || {}) });
 	let playerSummaries = $state<PlayerSummary[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
@@ -24,9 +24,10 @@
 	async function loadSummaries() {
 		try {
 			const summaries = await getPlayerSummary(data.team.id);
-			playerSummaries = summaries.summary;
+			playerSummaries = summaries || [];
 		} catch (err) {
 			console.error('Failed to load summaries:', err);
+			playerSummaries = [];
 		}
 	}
 
