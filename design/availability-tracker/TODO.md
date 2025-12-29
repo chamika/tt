@@ -1,79 +1,79 @@
 # ELTTL Availability Tracker - Implementation TODO
 
-## Phase 1: Foundation (Week 1)
+## Phase 1: Foundation (Week 1) ✅ COMPLETED
 
 ### Database Setup
-- [ ] Configure Cloudflare D1 database binding in wrangler.toml
-- [ ] Create database schema file (schema.sql)
-- [ ] Create migration scripts
-  - [ ] teams table
-  - [ ] fixtures table
-  - [ ] players table
-  - [ ] availability table
-  - [ ] final_selections table
-  - [ ] Add indexes for performance
-- [ ] Create seed data script for testing
-- [ ] Test D1 connection from Worker
+- [x] Configure Cloudflare D1 database binding in wrangler.toml
+- [x] Create database schema file (schema.sql)
+- [x] Create migration scripts
+  - [x] teams table
+  - [x] fixtures table
+  - [x] players table
+  - [x] availability table
+  - [x] final_selections table
+  - [x] Add indexes for performance
+- [x] Create seed data script for testing
+- [x] Test D1 connection from Worker
 
 ### Worker API Structure
-- [ ] Set up D1 binding in worker/src/index.ts
-- [ ] Create API route structure
-- [ ] Add error handling middleware
-- [ ] Add CORS configuration
-- [ ] Create utility functions for database operations
-- [ ] Add UUID generation utility
+- [x] Set up D1 binding in worker/src/index.ts
+- [x] Create API route structure
+- [x] Add error handling middleware
+- [x] Add CORS configuration
+- [x] Create utility functions for database operations
+- [x] Add UUID generation utility
 
 ---
 
-## Phase 2: Backend API (Week 2)
+## Phase 2: Backend API (Week 2) ✅ COMPLETED
 
 ### ELTTL Scraper
-- [ ] Research ELTTL HTML structure
-- [ ] Install HTML parser (cheerio or htmlparser2)
-- [ ] Implement `scrapeELTTLTeam(url)` function
-  - [ ] Extract team name
-  - [ ] Parse fixtures table (date, time, home, away)
-  - [ ] Parse squad/players list
-  - [ ] Handle parsing errors gracefully
-- [ ] Add validation for scraped data
-- [ ] Write tests for scraper
+- [x] Research ELTTL HTML structure
+- [x] Install HTML parser (node-html-parser)
+- [x] Implement `scrapeELTTLTeam(url)` function
+  - [x] Extract team name
+  - [x] Parse fixtures table (date, time, home, away)
+  - [x] Parse squad/players list
+  - [x] Handle parsing errors gracefully
+- [x] Add validation for scraped data
+- [x] Write tests for scraper
 
 ### Import Endpoint
-- [ ] POST /api/availability/import
-  - [ ] Accept ELTTL URL in request body
-  - [ ] Call scraper function
-  - [ ] Generate team UUID
-  - [ ] Save team to database
-  - [ ] Save fixtures to database
-  - [ ] Save players to database
-  - [ ] Initialize availability records (all false by default)
-  - [ ] Return team UUID and redirect URL
-  - [ ] Handle duplicate imports
+- [x] POST /api/availability/import
+  - [x] Accept ELTTL URL in request body
+  - [x] Call scraper function
+  - [x] Generate team UUID
+  - [x] Save team to database
+  - [x] Save fixtures to database
+  - [x] Save players to database
+  - [x] Initialize availability records (all false by default)
+  - [x] Return team UUID and redirect URL
+  - [x] Handle duplicate imports
 - [ ] Add rate limiting
-- [ ] Add input validation
+- [x] Add input validation
 
 ### CRUD Endpoints
-- [ ] GET /api/availability/:teamId
-  - [ ] Fetch team details
-  - [ ] Fetch all fixtures with availability
-  - [ ] Fetch all players
-  - [ ] Fetch final selections
-  - [ ] Return combined data structure
-  - [ ] Handle team not found
-- [ ] PATCH /api/availability/:teamId/fixture/:fixtureId/player/:playerId
-  - [ ] Update availability record
-  - [ ] Return updated data
-  - [ ] Add validation
-- [ ] POST /api/availability/:teamId/fixture/:fixtureId/selection
-  - [ ] Validate exactly 3 players selected
-  - [ ] Clear existing selections
-  - [ ] Save new selections
-  - [ ] Return updated selections
-- [ ] GET /api/availability/:teamId/summary
-  - [ ] Calculate games played (past)
-  - [ ] Calculate games scheduled (future)
-  - [ ] Calculate selection rate per player
-  - [ ] Return summary data
+- [x] GET /api/availability/:teamId
+  - [x] Fetch team details
+  - [x] Fetch all fixtures with availability
+  - [x] Fetch all players
+  - [x] Fetch final selections
+  - [x] Return combined data structure
+  - [x] Handle team not found
+- [x] PATCH /api/availability/:teamId/fixture/:fixtureId/player/:playerId
+  - [x] Update availability record
+  - [x] Return updated data
+  - [x] Add validation
+- [x] POST /api/availability/:teamId/fixture/:fixtureId/selection
+  - [x] Validate exactly 3 players selected
+  - [x] Clear existing selections
+  - [x] Save new selections
+  - [x] Return updated selections
+- [x] GET /api/availability/:teamId/summary
+  - [x] Calculate games played (past)
+  - [x] Calculate games scheduled (future)
+  - [x] Calculate selection rate per player
+  - [x] Return summary data
 
 ---
 

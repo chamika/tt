@@ -3,3 +3,9 @@ compatibility_date = "2025-12-01"
 workers_dev = true
 type = "javascript"
 main = "src/index.ts"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability"
+database_id = "315f71c2-49c5-4296-b695-9f01113e18db"

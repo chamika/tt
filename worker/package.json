@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
-    "publish": "wrangler publish"
+    "publish": "wrangler publish",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "hono": "^3.3.3"
+    "hono": "^4.11.3",
+    "node-html-parser": "^7.0.1"
   },
   "devDependencies": {
-    "wrangler": "^3.15.0",
-    "typescript": "^5.1.0"
+    "typescript": "^5.1.0",
+    "vitest": "^4.0.16",
+    "wrangler": "^3.15.0"
   }
 }
