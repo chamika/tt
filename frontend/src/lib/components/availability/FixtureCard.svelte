@@ -14,6 +14,7 @@
 		finalSelections: finalSelectionsProp = [],
 		onAvailabilityChange,
 		onSelectionChange,
+		disabled = false,
 	}: {
 		fixture: Fixture;
 		players: Player[];
@@ -21,6 +22,7 @@
 		finalSelections?: string[];
 		onAvailabilityChange: (playerId: string, isAvailable: boolean) => void;
 		onSelectionChange: (playerIds: string[]) => void;
+		disabled?: boolean;
 	} = $props();
 
 	// Ensure finalSelections is always an array
@@ -121,7 +123,7 @@
 						<input
 							type="checkbox"
 							checked={isAvailable(player.id)}
-							disabled={isSelected(player.id)}
+							disabled={isSelected(player.id) || disabled}
 							onchange={(e) =>
 								onAvailabilityChange(
 									player.id,
@@ -146,8 +148,8 @@
 						<button
 							type="button"
 							onclick={() => toggleSelection(player.id)}
-							disabled={!isSelected(player.id) &&
-								finalSelections.length >= 3}
+							disabled={disabled || (!isSelected(player.id) &&
+								finalSelections.length >= 3)}
 							class="p-1.5 rounded-md transition-colors {isSelected(
 								player.id,
 							)

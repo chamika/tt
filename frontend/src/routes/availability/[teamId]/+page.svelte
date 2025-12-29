@@ -1,6 +1,6 @@
 <!-- Main Availability Tracker Page -->
 <script lang="ts">
-	import { ArrowLeft, Users, Calendar as CalendarIcon } from 'lucide-svelte';
+	import { ArrowLeft, Users, Calendar as CalendarIcon, PencilLine } from 'lucide-svelte';
 	import type { PageData } from './$types';
 	import FixtureCard from '$lib/components/availability/FixtureCard.svelte';
 	import PlayerSummaryCard from '$lib/components/availability/PlayerSummaryCard.svelte';
@@ -15,6 +15,7 @@
 	let playerSummaries = $state<PlayerSummary[]>([]);
 	let loading = $state(false);
 	let error = $state<string | null>(null);
+	let pastFixturesEditMode = $state(false);
 
 	// Load player summaries
 	$effect(() => {
@@ -151,18 +152,34 @@
 	<!-- Past Fixtures -->
 	{#if pastFixtures.length > 0}
 		<div>
-			<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-				Past Fixtures
-			</h2>
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75">
+			<div class="flex items-center justify-between mb-6">
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+					Past Fixtures
+				</h2>
+				<button
+					onclick={() => pastFixturesEditMode = !pastFixturesEditMode}
+					class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors {pastFixturesEditMode
+						? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+						: 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-300'}"
+				>
+					<PencilLine size={16} />
+					{pastFixturesEditMode ? 'Done Editing' : 'Edit'}
+				</button>
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 {pastFixturesEditMode ? '' : 'opacity-75'}">
 				{#each pastFixtures as fixture}
 					<FixtureCard
 						{fixture}
 						players={data.players}
 						{availability}
 						finalSelections={finalSelections[fixture.id] || []}
-						onAvailabilityChange={() => {}}
-						onSelectionChange={() => {}}
+						onAvailabilityChange={pastFixturesEditMode
+							? (playerId, isAvailable) => handleAvailabilityChange(fixture.id, playerId, isAvailable)
+							: () => {}}
+						onSelectionChange={pastFixturesEditMode
+							? (playerIds) => handleSelectionChange(fixture.id, playerIds)
+							: () => {}}
+						disabled={!pastFixturesEditMode}
 					/>
 				{/each}
 			</div>
