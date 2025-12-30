@@ -13,22 +13,20 @@ database_name = "tabletennis-availability"
 database_id = "315f71c2-49c5-4296-b695-9f01113e18db"
 
 # Production Environment
-# Uncomment and configure for production deployment:
 # [env.production]
-# name = "tabletennis-prod"
-# [[env.production.d1_databases]]
-# binding = "DB"
-# database_name = "tabletennis-availability-prod"
-# database_id = "your-production-database-id"
+# name = "tabletennis"
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability-prod"
+database_id = "e2440329-c6fa-469f-93ed-7ff7faecef1a"
 
 # Staging Environment
-# Uncomment and configure for staging deployment:
 # [env.staging]
-# name = "tabletennis-staging"
-# [[env.staging.d1_databases]]
-# binding = "DB"
-# database_name = "tabletennis-availability-staging"
-# database_id = "your-staging-database-id"
+# name = "tabletennis"
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability-staging"
+database_id = "3913705b-3bbd-4722-929e-44742cdbabf7"
 
 # Deployment Configuration
 # - Development uses local database: wrangler dev --local
