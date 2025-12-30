@@ -67,11 +67,11 @@
 </script>
 
 <div
-	class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden"
+	class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-xl"
 >
-	<!-- Card Header with match image -->
+	<!-- Card Header with match details -->
 	<div
-		class="h-48 bg-gradient-to-br from-blue-500 to-emerald-500 relative overflow-hidden"
+		class="h-40 bg-gradient-to-br from-blue-500 to-emerald-500 relative overflow-hidden"
 	>
 		<div class="absolute inset-0 opacity-20">
 			<!-- Pattern overlay -->
@@ -80,44 +80,49 @@
 				style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px);"
 			></div>
 		</div>
-		<div
-			class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent text-white"
-		>
-			<div class="flex items-center gap-2 text-sm mb-1">
+		<div class="absolute inset-0 p-4 flex flex-col justify-between text-white">
+			<!-- Date & Time -->
+			<div class="flex items-center gap-2 text-sm font-medium">
 				<Calendar size={16} />
 				<span>{fixture.day_time}</span>
 			</div>
+			
+			<!-- Match Teams -->
+			<div class="text-center">
+				<div class="text-lg font-bold leading-tight mb-1">
+					{fixture.home_team}
+				</div>
+				<div class="text-xs font-semibold opacity-90 mb-1">vs</div>
+				<div class="text-lg font-bold leading-tight">
+					{fixture.away_team}
+				</div>
+			</div>
+			
+			<!-- Venue -->
 			{#if fixture.venue}
 				<div class="flex items-center gap-2 text-sm opacity-90">
 					<MapPin size={16} />
-					<span>{fixture.venue}</span>
+					<span class="truncate">{fixture.venue}</span>
 				</div>
+			{:else}
+				<div class="h-5"></div>
 			{/if}
 		</div>
 	</div>
 
-	<!-- Match Details -->
+	<!-- Content -->
 	<div class="p-6">
-		<div class="text-center mb-4">
-			<div class="text-lg font-semibold text-gray-900 dark:text-white">
-				{fixture.home_team}
-			</div>
-			<div class="text-sm text-gray-500 dark:text-gray-400 my-1">vs</div>
-			<div class="text-lg font-semibold text-gray-900 dark:text-white">
-				{fixture.away_team}
-			</div>
-		</div>
 
 		<!-- Availability Section -->
-		<div class="space-y-2 mb-4">
+		<div class="space-y-2 mb-6">
 			<h4
-				class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2"
+				class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3"
 			>
 				Availability ({availableCount}/{players.length})
 			</h4>
 			{#each players as player}
 				<div
-					class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors"
+					class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors min-h-[44px]"
 				>
 					<label class="flex items-center gap-3 flex-1 cursor-pointer">
 						<input
@@ -137,25 +142,29 @@
 							{player.name}
 						</span>
 					</label>
-					{#if isAvailable(player.id)}
-						<button
-							type="button"
-							onclick={() => toggleSelection(player.id)}
-							disabled={disabled || (!isSelected(player.id) &&
-								finalSelections.length >= 3)}
-							class="p-1.5 rounded-md transition-colors {isSelected(
-								player.id,
-							)
-								? 'bg-red-600 hover:bg-red-700 text-white'
-								: 'bg-green-600 hover:bg-green-700 text-white'} disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{#if isSelected(player.id)}
-								<X size={16} />
-							{:else}
-								<Plus size={16} />
-							{/if}
-						</button>
-					{/if}
+					<!-- Reserve space for button to maintain consistent spacing -->
+					<div class="w-9 flex-shrink-0">
+						{#if isAvailable(player.id)}
+							<button
+								type="button"
+								onclick={() => toggleSelection(player.id)}
+								disabled={disabled || (!isSelected(player.id) &&
+									finalSelections.length >= 3)}
+								class="p-1.5 rounded-md transition-colors w-full {isSelected(
+									player.id,
+								)
+									? 'bg-red-600 hover:bg-red-700 text-white'
+									: 'bg-green-600 hover:bg-green-700 text-white'} disabled:opacity-50 disabled:cursor-not-allowed"
+								title={isSelected(player.id) ? 'Remove from selection' : 'Add to selection'}
+							>
+								{#if isSelected(player.id)}
+									<X size={16} class="mx-auto" />
+								{:else}
+									<Plus size={16} class="mx-auto" />
+								{/if}
+							</button>
+						{/if}
+					</div>
 				</div>
 			{/each}
 		</div>

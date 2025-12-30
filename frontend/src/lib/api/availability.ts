@@ -9,6 +9,18 @@ import type {
   ApiError
 } from '$lib/types/availability';
 
+// Re-export types for convenience
+export type {
+  Team,
+  Fixture,
+  Player,
+  TeamData,
+  PlayerSummary
+} from '$lib/types/availability';
+
+export type AvailabilityMap = Record<string, boolean>;
+export type FinalSelectionsMap = Record<string, string[]>;
+
 const API_BASE_URL = 'http://localhost:8787/api';
 
 /**
