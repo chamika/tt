@@ -243,16 +243,7 @@
 
 ## Future Enhancements (Post-MVP)
 
-- [ ] Add authentication (optional team passwords)
-- [ ] Add email notifications for selections
-- [ ] Add export to PDF/Excel
-- [ ] Add historical data analysis
-- [ ] Add player notes/comments
-- [ ] Add WebSocket support for real-time updates
-- [ ] Add team admin controls
-- [ ] Add multi-season support
-- [ ] Add mobile app (PWA)
-- [ ] Add WhatsApp/SMS integration
+- [ ] Add support for updating fixture changes from ELTTL
 - [ ] Implement polling for data updates
 - [ ] Add optimistic UI updates
 - [ ] Add conflict resolution
