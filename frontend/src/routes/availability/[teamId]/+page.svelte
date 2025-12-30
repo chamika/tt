@@ -141,7 +141,7 @@
 			<h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
 				Season Stats Summary
 			</h2>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 				{#each Array(data.players.length) as _}
 					<PlayerSummaryCardSkeleton />
 				{/each}
@@ -152,7 +152,7 @@
 			<h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
 				Season Stats Summary
 			</h2>
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 				{#each playerSummaries as summary}
 					<PlayerSummaryCard {summary} />
 				{/each}

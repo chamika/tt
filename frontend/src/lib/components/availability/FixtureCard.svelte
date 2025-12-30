@@ -80,33 +80,36 @@
 				style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px);"
 			></div>
 		</div>
-		<div class="absolute inset-0 p-4 flex flex-col justify-between text-white">
-			<!-- Date & Time -->
-			<div class="flex items-center gap-2 text-sm font-medium">
-				<Calendar size={16} />
-				<span>{fixture.day_time}</span>
-			</div>
-			
-			<!-- Match Teams -->
-			<div class="text-center">
-				<div class="text-lg font-bold leading-tight mb-1">
-					{fixture.home_team}
-				</div>
-				<div class="text-xs font-semibold opacity-90 mb-1">vs</div>
-				<div class="text-lg font-bold leading-tight">
-					{fixture.away_team}
+		<div class="absolute inset-0 p-4 flex flex-col text-white">
+			<!-- Match Teams (centered) -->
+			<div class="flex-1 flex items-center justify-center">
+				<div class="text-center">
+					<div class="text-lg font-bold leading-tight mb-1">
+						{fixture.home_team}
+					</div>
+					<div class="text-xs font-semibold opacity-90 mb-1">vs</div>
+					<div class="text-lg font-bold leading-tight">
+						{fixture.away_team}
+					</div>
 				</div>
 			</div>
 			
-			<!-- Venue -->
-			{#if fixture.venue}
-				<div class="flex items-center gap-2 text-sm opacity-90">
-					<MapPin size={16} />
-					<span class="truncate">{fixture.venue}</span>
+			<!-- Bottom row: Date (left) and Venue (right) -->
+			<div class="flex items-end justify-between gap-4 text-sm">
+				<!-- Date & Time -->
+				<div class="flex items-center gap-2 font-medium">
+					<Calendar size={16} class="flex-shrink-0" />
+					<span>{fixture.day_time}</span>
 				</div>
-			{:else}
-				<div class="h-5"></div>
-			{/if}
+				
+				<!-- Venue -->
+				{#if fixture.venue}
+					<div class="flex items-center gap-2 opacity-90">
+						<MapPin size={16} class="flex-shrink-0" />
+						<span class="truncate">{fixture.venue}</span>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 
