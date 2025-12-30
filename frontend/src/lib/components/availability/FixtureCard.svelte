@@ -64,14 +64,27 @@
 	let hasWarning = $derived(
 		finalSelections.length > 0 && finalSelections.length !== 3,
 	);
+	let insufficientPlayers = $derived(availableCount < 3);
+	let cannotSelect = $derived(availableCount < 3 && finalSelections.length < 3);
+	let selectionLimitReached = $derived(finalSelections.length >= 3);
 </script>
 
 <div
-	class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden transition-all hover:shadow-xl"
+	class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border overflow-hidden transition-all hover:shadow-xl {hasWarning
+		? 'border-yellow-400 dark:border-yellow-600'
+		: isValid
+			? 'border-green-400 dark:border-green-600'
+			: 'border-gray-200 dark:border-slate-700'}"
 >
 	<!-- Card Header with match details -->
 	<div
-		class="h-40 bg-gradient-to-br from-blue-500 to-emerald-500 relative overflow-hidden"
+		class="h-40 bg-gradient-to-br relative overflow-hidden {hasWarning && insufficientPlayers
+		? 'from-red-500 to-orange-500'
+		: hasWarning
+			? 'from-yellow-500 to-orange-500'
+			: isValid
+				? 'from-emerald-500 via-green-500 to-teal-500'
+				: 'from-blue-500 to-emerald-500'}"
 	>
 		<div class="absolute inset-0 opacity-20">
 			<!-- Pattern overlay -->
@@ -115,7 +128,6 @@
 
 	<!-- Content -->
 	<div class="p-6">
-
 		<!-- Availability Section -->
 		<div class="space-y-2 mb-6">
 			<h4
@@ -158,7 +170,13 @@
 								)
 									? 'bg-red-600 hover:bg-red-700 text-white'
 									: 'bg-green-600 hover:bg-green-700 text-white'} disabled:opacity-50 disabled:cursor-not-allowed"
-								title={isSelected(player.id) ? 'Remove from selection' : 'Add to selection'}
+								title={disabled 
+									? 'Past fixtures are read-only'
+									: isSelected(player.id) 
+										? 'Remove from selection' 
+										: selectionLimitReached 
+											? 'Maximum 3 players already selected' 
+											: 'Add to selection'}
 							>
 								{#if isSelected(player.id)}
 									<X size={16} class="mx-auto" />

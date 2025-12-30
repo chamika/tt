@@ -156,35 +156,42 @@
 
 ---
 
-## Phase 5: Features & Testing (Week 5)
+## Phase 5: Features & Testing (Week 5) ✅ IN PROGRESS
 
 ### Validation & Business Logic
-- [ ] Add client-side validation for 3-player selection
-  - [ ] Disable selection if < 3 available
-  - [ ] Warn if > 3 selected
-  - [ ] Highlight invalid fixtures
-- [ ] Add server-side validation
-- [ ] Implement past vs future match filtering
-  - [ ] Mark past matches as read-only unless explicitly allowed
-  - [ ] Different styling for past matches
-  - [ ] Filter toggle
-- [ ] Calculate player summary statistics
-  - [ ] Games played (past with final selection)
-  - [ ] Games scheduled (future with final selection)
-  - [ ] Total games
-  - [ ] Selection rate percentage
+- [x] Add client-side validation for 3-player selection
+  - [x] Disable selection if < 3 available
+  - [x] Warn if > 3 selected
+  - [x] Highlight invalid fixtures
+  - [x] Add tooltips for disabled states
+  - [x] Show insufficient players warning
+- [x] Add server-side validation
+  - [x] Verify selected players are available
+  - [x] Validate maximum 3 players
+  - [x] Return appropriate error messages
+- [x] Implement past vs future match filtering
+  - [x] Mark past matches as read-only by default
+  - [x] Add edit mode toggle for past matches
+  - [x] Different styling for past matches
+  - [x] Opacity reduction when disabled
+- [x] Calculate player summary statistics
+  - [x] Games played (past with final selection)
+  - [x] Games scheduled (future with final selection)
+  - [x] Total games
+  - [x] Selection rate percentage
 
 ### Testing
-- [ ] Write unit tests for scraper
-- [ ] Write unit tests for API endpoints
-- [ ] Write unit tests for frontend utilities
-- [ ] Write E2E tests with Playwright
-  - [ ] Import team flow
-  - [ ] Update availability flow
-  - [ ] Set final selection flow
-  - [ ] View player summary flow
+- [x] Write unit tests for validation logic
+- [x] Write E2E tests with Playwright
+  - [x] Validation state tests
+  - [x] Insufficient players warning test
+  - [x] Selection limit tests
+  - [x] Past fixtures read-only test
+  - [x] Edit mode toggle test
+  - [x] Player summary display test
 - [ ] Write integration tests for database operations
 - [ ] Add test coverage reporting
+- [ ] Run all tests and verify passing
 
 ---
 

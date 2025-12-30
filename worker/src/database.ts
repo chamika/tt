@@ -173,6 +173,15 @@ export class DatabaseService {
     return result.results || [];
   }
 
+  async getAvailabilityForFixture(fixtureId: string): Promise<Availability[]> {
+    const result = await this.db
+      .prepare('SELECT * FROM availability WHERE fixture_id = ?')
+      .bind(fixtureId)
+      .all<Availability>();
+    
+    return result.results || [];
+  }
+
   // Final Selections
   async createFinalSelection(fixtureId: string, playerId: string): Promise<FinalSelection> {
     const id = generateUUID();

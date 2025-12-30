@@ -204,6 +204,19 @@ app.post('/api/availability/:teamId/fixture/:fixtureId/selection', async (c) => 
       }
     }
 
+    // Verify all selected players are marked as available
+    if (body.playerIds.length > 0) {
+      const availability = await db.getAvailabilityForFixture(fixtureId);
+      for (const playerId of body.playerIds) {
+        const playerAvailability = availability.find(a => a.player_id === playerId);
+        if (!playerAvailability || playerAvailability.is_available !== 1) {
+          return c.json({ 
+            error: `Cannot select player ${playerId} - player is not marked as available` 
+          }, 400);
+        }
+      }
+    }
+
     // Clear existing selections
     await db.clearFinalSelections(fixtureId);
 
