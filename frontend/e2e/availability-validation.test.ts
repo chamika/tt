@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // Note: These tests require a running worker API and a test team to be set up
 // You may need to adjust the teamId based on your test data
-const TEST_TEAM_ID = '3ffcdda9-5da7-4387-9884-81bd7b70cc61';
+const TEST_TEAM_ID = '00000000-0000-0000-0000-000000000000';
 
 test.describe('Availability Tracker Validation', () => {
 	test.beforeEach(async ({ page }) => {
@@ -22,27 +22,22 @@ test.describe('Availability Tracker Validation', () => {
 	});
 
 	test('displays validation warning when less than 3 players selected', async ({ page }) => {
-		// Wait for fixture cards to be visible
-		const fixtureCards = page.locator('[class*="bg-white"][class*="rounded-2xl"]');
+		// Wait for "Upcoming Fixtures" section
+		await page.waitForSelector('h2:has-text("Upcoming Fixtures")', { state: 'visible' });
 		
-		// Skip test if no fixtures available
-		const count = await fixtureCards.count();
-		if (count === 0) {
-			test.skip();
-			return;
-		}
+		// Wait for fixture cards to be visible (look for cards with Availability heading)
+		await page.waitForSelector('text=/Availability \\(\\d+\\/\\d+\\)/', { timeout: 10000 });
 		
-		const fixtureCard = fixtureCards.first();
-		await fixtureCard.waitFor({ state: 'visible' });
+		// Get the first fixture card by finding the card that contains availability checkboxes
+		const fixtureCard = page.locator('div').filter({ has: page.locator('h4:has-text("Availability")') }).first();
+		await expect(fixtureCard).toBeVisible();
 		
-		// Get all checkboxes in this fixture
+		// Wait for checkboxes to be rendered
 		const checkboxes = fixtureCard.locator('input[type="checkbox"]');
-		const checkboxCount = await checkboxes.count();
+		await checkboxes.first().waitFor({ state: 'visible', timeout: 10000 });
 		
-		if (checkboxCount < 2) {
-			test.skip();
-			return;
-		}
+		const checkboxCount = await checkboxes.count();
+		expect(checkboxCount).toBeGreaterThanOrEqual(2);
 		
 		// Mark 2 players as available
 		await checkboxes.nth(0).check({ force: true });
@@ -50,43 +45,48 @@ test.describe('Availability Tracker Validation', () => {
 		await checkboxes.nth(1).check({ force: true });
 		await page.waitForTimeout(500);
 		
-		// Try to add both to selection if buttons are available
-		const addButtons = fixtureCard.locator('button').filter({ hasText: /\+|Add/ });
+		// Add both to selection
+		const addButtons = fixtureCard.locator('button:has-text("+")').or(fixtureCard.locator('button[title*="Add to selection"]'));
 		const buttonCount = await addButtons.count();
+		expect(buttonCount).toBeGreaterThanOrEqual(2);
 		
-		if (buttonCount >= 2) {
-			await addButtons.nth(0).click();
-			await page.waitForTimeout(500);
-			await addButtons.nth(1).click();
-			await page.waitForTimeout(500);
-			
-			// Check for warning message or counter showing 2/3
-			const hasWarning = await fixtureCard.locator('text=/Please select .* more player/i').isVisible();
-			const hasCounter = await fixtureCard.locator('text=2/3').isVisible();
-			
-			expect(hasWarning || hasCounter).toBeTruthy();
-		}
+		await addButtons.nth(0).click();
+		await page.waitForTimeout(500);
+		await addButtons.nth(1).click();
+		await page.waitForTimeout(500);
+		
+		// Check for warning message or counter showing 2/3
+		const hasWarning = await fixtureCard.locator('text=/Please select .* more player/i').isVisible();
+		const hasCounter = await fixtureCard.locator('text=2/3').isVisible();
+		
+		expect(hasWarning || hasCounter).toBeTruthy();
 	});
 
 	test('disables add button when 3 players already selected', async ({ page }) => {
-		const fixtureCards = page.locator('[class*="bg-white"][class*="rounded-2xl"]');
-		const count = await fixtureCards.count();
+		// Wait for "Upcoming Fixtures" section
+		await page.waitForSelector('h2:has-text("Upcoming Fixtures")', { state: 'visible' });
 		
-		if (count === 0) {
-			test.skip();
-			return;
-		}
+		// Wait for fixture cards to be visible
+		await page.waitForSelector('text=/Availability \\(\\d+\\/\\d+\\)/', { timeout: 10000 });
 		
-		const fixtureCard = fixtureCards.first();
-		await fixtureCard.waitFor({ state: 'visible' });
+		// Get the first fixture card by finding the card that contains availability checkboxes
+		const fixtureCard = page.locator('div').filter({ has: page.locator('h4:has-text("Availability")') }).first();
+		await expect(fixtureCard).toBeVisible();
 		
+		// Wait for checkboxes to be rendered
 		const checkboxes = fixtureCard.locator('input[type="checkbox"]');
-		const checkboxCount = await checkboxes.count();
+		await checkboxes.first().waitFor({ state: 'visible', timeout: 10000 });
 		
-		if (checkboxCount < 4) {
-			test.skip();
-			return;
+		// First, remove any existing selections
+		const removeButtons = fixtureCard.locator('button[title*="Remove from selection"]');
+		const removeCount = await removeButtons.count();
+		for (let i = 0; i < removeCount; i++) {
+			await removeButtons.first().click();
+			await page.waitForTimeout(300);
 		}
+		
+		const checkboxCount = await checkboxes.count();
+		expect(checkboxCount).toBeGreaterThanOrEqual(4);
 		
 		// Mark 4 players as available
 		for (let i = 0; i < 4; i++) {
@@ -95,36 +95,32 @@ test.describe('Availability Tracker Validation', () => {
 		}
 		
 		// Add 3 players to selection
-		const addButtons = fixtureCard.locator('button').filter({ hasText: /\+|Add/ });
-		for (let i = 0; i < 3 && i < await addButtons.count(); i++) {
+		const addButtons = fixtureCard.locator('button:has-text("+")').or(fixtureCard.locator('button[title*="Add to selection"]'));
+		const buttonCount = await addButtons.count();
+		expect(buttonCount).toBeGreaterThanOrEqual(3);
+		
+		for (let i = 0; i < 3; i++) {
 			await addButtons.nth(i).click();
 			await page.waitForTimeout(300);
 		}
 		
-		// Verify selection counter shows 3/3 if present
-		const counter = fixtureCard.locator('text=3/3');
-		if (await counter.isVisible()) {
-			await expect(counter).toBeVisible();
-		}
+		// Verify selection counter shows 3/3
+		await page.waitForTimeout(1000);
+		const counter = fixtureCard.locator('text=3/3').first();
+		
+		await expect(counter).toBeVisible();
 	});
 
 	test('shows player summary cards', async ({ page }) => {
 		// Check that Season Stats Summary section exists
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
+		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
-		// Wait with longer timeout for data to load
-		try {
-			await summaryHeading.waitFor({ state: 'visible', timeout: 15000 });
-			
-			// Check that player summary cards are displayed
-			const summaryCards = page.locator('[class*="bg-white"]').filter({ hasText: /Selection Rate|Played|Scheduled/ });
-			const cardCount = await summaryCards.count();
-			
-			expect(cardCount).toBeGreaterThan(0);
-		} catch (error) {
-			// If summary section doesn't load, skip the test
-			test.skip();
-		}
+		// Check that player summary cards are displayed
+		const summaryCards = page.locator('[class*="bg-white"]').filter({ hasText: /Selection Rate|Played|Scheduled/ });
+		const cardCount = await summaryCards.count();
+		
+		expect(cardCount).toBeGreaterThan(0);
 	});
 });
 
@@ -138,39 +134,20 @@ test.describe('Past Fixtures Read-Only Mode', () => {
 
 	test('displays past fixtures section', async ({ page }) => {
 		const pastSection = page.locator('h2:has-text("Past Fixtures")');
-		
-		// Check if past fixtures section exists with longer timeout
-		const isVisible = await pastSection.isVisible({ timeout: 15000 }).catch(() => false);
-		
-		if (isVisible) {
-			await expect(pastSection).toBeVisible();
-		} else {
-			// Skip if no past fixtures section found
-			test.skip();
-		}
+		await expect(pastSection).toBeVisible({ timeout: 15000 });
 	});
 
 	test('edit button is present for past fixtures', async ({ page }) => {
 		const pastSection = page.locator('h2:has-text("Past Fixtures")');
-		
-		// Wait for past fixtures section
-		const isVisible = await pastSection.isVisible({ timeout: 5000 }).catch(() => false);
-		
-		if (!isVisible) {
-			test.skip();
-			return;
-		}
+		await expect(pastSection).toBeVisible({ timeout: 10000 });
 		
 		// Find the Edit button
 		const editButton = page.locator('button', { hasText: /Edit|Done Editing/i }).first();
+		await expect(editButton).toBeVisible();
 		
-		if (await editButton.isVisible()) {
-			await expect(editButton).toBeVisible();
-			
-			// Should initially show "Edit"
-			const buttonText = await editButton.textContent();
-			expect(buttonText).toMatch(/Edit/i);
-		}
+		// Should initially show "Edit"
+		const buttonText = await editButton.textContent();
+		expect(buttonText).toMatch(/Edit/i);
 	});
 });
 
@@ -185,53 +162,29 @@ test.describe('Player Summary Statistics', () => {
 	test('displays player summary section', async ({ page }) => {
 		// Check that Season Stats Summary section exists
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
-		
-		const isVisible = await summaryHeading.isVisible({ timeout: 15000 }).catch(() => false);
-		
-		if (isVisible) {
-			await expect(summaryHeading).toBeVisible();
-		} else {
-			test.skip();
-		}
+		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 	});
 
 	test('shows stat labels in summary cards', async ({ page }) => {
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
-		const isVisible = await summaryHeading.isVisible({ timeout: 15000 }).catch(() => false);
-		
-		if (!isVisible) {
-			test.skip();
-			return;
-		}
+		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
 		// Check that stat labels are present somewhere on the page
 		const playedLabel = page.locator('text=Played').first();
 		const scheduledLabel = page.locator('text=Scheduled').first();
 		const totalLabel = page.locator('text=Total').first();
 		
-		// Use soft assertions with timeouts
-		await expect(playedLabel).toBeVisible({ timeout: 5000 }).catch(() => {});
-		await expect(scheduledLabel).toBeVisible({ timeout: 5000 }).catch(() => {});
-		await expect(totalLabel).toBeVisible({ timeout: 5000 }).catch(() => {});
+		await expect(playedLabel).toBeVisible({ timeout: 5000 });
+		await expect(scheduledLabel).toBeVisible({ timeout: 5000 });
+		await expect(totalLabel).toBeVisible({ timeout: 5000 });
 	});
 
 	test('displays selection rate', async ({ page }) => {
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
-		const isVisible = await summaryHeading.isVisible({ timeout: 15000 }).catch(() => false);
-		
-		if (!isVisible) {
-			test.skip();
-			return;
-		}
+		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
 		// Check that selection rate is displayed with percentage
 		const selectionRate = page.locator('text=/Selection Rate:.*%/').first();
-		const rateVisible = await selectionRate.isVisible({ timeout: 5000 }).catch(() => false);
-		
-		if (rateVisible) {
-			await expect(selectionRate).toBeVisible();
-		} else {
-			test.skip();
-		}
+		await expect(selectionRate).toBeVisible({ timeout: 5000 });
 	});
 });

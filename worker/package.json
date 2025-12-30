@@ -8,7 +8,8 @@
     "publish": "wrangler publish",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "seed": "wrangler d1 execute tabletennis-availability --local --file=./seed.sql"
   },
   "dependencies": {
     "hono": "^4.11.3",

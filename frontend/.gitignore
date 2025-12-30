@@ -26,3 +26,5 @@
 # Playwright
 /test-results/
 .cache/
+
+playwright-report/
