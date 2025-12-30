@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { compress } from 'hono/compress';
 import type { Env, ImportTeamRequest, ImportTeamResponse } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
@@ -21,9 +20,6 @@ function log(level: 'info' | 'error' | 'warn', message: string, meta?: Record<st
 
 // Enable CORS for frontend
 app.use('/*', cors());
-
-// Enable compression for all responses
-app.use('/*', compress());
 
 // Health check endpoint
 app.get('/api/health', (c) => {
