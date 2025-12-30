@@ -10,7 +10,7 @@
 	import EmptyState from '$lib/components/availability/EmptyState.svelte';
 	import Notification from '$lib/components/availability/Notification.svelte';
 	import { getTeamData, updateAvailability, setFinalSelection, getPlayerSummary } from '$lib/api/availability';
-	import type { PlayerSummary, TeamData, Team, Fixture, Player } from '$lib/api/availability';
+	import type { PlayerSummary, Team, Fixture, Player } from '$lib/api/availability';
 
 	// Get teamId from URL params
 	const teamId = $page.params.teamId;
@@ -91,7 +91,7 @@
 			// Reload summaries after availability change
 			await loadSummaries();
 			showSuccess('Availability updated successfully');
-		} catch (err) {
+		} catch {
 			// Revert on error
 			availability[key] = !isAvailable;
 			showError('Failed to update availability');
@@ -110,7 +110,7 @@
 			// Reload summaries after selection change
 			await loadSummaries();
 			showSuccess('Selection updated successfully');
-		} catch (err) {
+		} catch {
 			// Revert on error
 			finalSelections[fixtureId] = previousSelection;
 			showError('Failed to update selection');
@@ -191,7 +191,7 @@
 				Season Stats Summary
 			</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-				{#each Array(players.length || 3) as _}
+				{#each Array(players.length || 3) as _, i (i)}
 					<PlayerSummaryCardSkeleton />
 				{/each}
 			</div>
@@ -202,7 +202,7 @@
 				Season Stats Summary
 			</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-				{#each playerSummaries as summary}
+				{#each playerSummaries as summary (summary.playerId)}
 					<PlayerSummaryCard {summary} />
 				{/each}
 			</div>
@@ -216,7 +216,7 @@
 				Upcoming Fixtures
 			</h2>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-				{#each Array(3) as _}
+				{#each Array(3) as _, i (i)}
 					<FixtureCardSkeleton />
 				{/each}
 			</div>
@@ -227,7 +227,7 @@
 				Upcoming Fixtures
 			</h2>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-				{#each futureFixtures as fixture}
+				{#each futureFixtures as fixture (fixture.id)}
 					<FixtureCard
 						{fixture}
 						{players}
@@ -262,7 +262,7 @@
 				Past Fixtures
 			</h2>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-				{#each Array(2) as _}
+				{#each Array(2) as _, i (i)}
 					<FixtureCardSkeleton />
 				{/each}
 			</div>
@@ -284,7 +284,7 @@
 				</button>
 			</div>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 {pastFixturesEditMode ? '' : 'opacity-75'}">
-				{#each pastFixtures as fixture}
+				{#each pastFixtures as fixture (fixture.id)}
 					<FixtureCard
 						{fixture}
 						{players}

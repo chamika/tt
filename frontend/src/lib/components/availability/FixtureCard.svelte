@@ -4,7 +4,6 @@
 		Fixture,
 		Player,
 		AvailabilityMap,
-		FinalSelectionsMap,
 	} from "$lib/api/availability";
 
 	let {
@@ -65,7 +64,6 @@
 		finalSelections.length > 0 && finalSelections.length !== 3,
 	);
 	let insufficientPlayers = $derived(availableCount < 3);
-	let cannotSelect = $derived(availableCount < 3 && finalSelections.length < 3);
 	let selectionLimitReached = $derived(finalSelections.length >= 3);
 </script>
 
@@ -135,7 +133,7 @@
 			>
 				Availability ({availableCount}/{players.length})
 			</h4>
-			{#each players as player}
+			{#each players as player (player.id)}
 				<div
 					class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors min-h-[44px]"
 				>
@@ -211,7 +209,7 @@
 
 			<div class="space-y-2">
 				{#if finalSelections.length > 0}
-					{#each players.filter((p) => isSelected(p.id)) as player}
+				{#each players.filter((p) => isSelected(p.id)) as player (player.id)}
 						<div
 							class="flex items-center gap-3 p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20"
 						>

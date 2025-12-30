@@ -16,7 +16,7 @@
 
 	<!-- Stats Grid Skeleton -->
 	<div class="grid grid-cols-3 gap-2 sm:gap-3">
-		{#each Array(3) as _}
+		{#each Array(3) as _, i (i)}
 			<div class="text-center p-2 sm:p-3 bg-gray-100 dark:bg-slate-700/50 rounded-lg">
 				<div class="h-7 sm:h-8 bg-gray-200 dark:bg-slate-600 rounded w-8 mx-auto mb-2"></div>
 				<div class="h-3 bg-gray-200 dark:bg-slate-600 rounded w-12 mx-auto"></div>

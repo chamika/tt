@@ -13,7 +13,7 @@
 		<!-- Availability Section -->
 		<div class="space-y-2 mb-6">
 			<div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-32 mb-3"></div>
-			{#each Array(5) as _}
+			{#each Array(5) as _, i (i)}
 				<div class="flex items-center gap-3 p-2 min-h-[44px]">
 					<div class="w-4 h-4 bg-gray-200 dark:bg-slate-700 rounded"></div>
 					<div class="h-4 bg-gray-200 dark:bg-slate-700 rounded flex-1"></div>
@@ -29,7 +29,7 @@
 				<div class="h-6 w-12 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
 			</div>
 			<div class="space-y-2">
-				{#each Array(3) as _}
+				{#each Array(3) as _, i (i)}
 					<div class="h-10 bg-gray-100 dark:bg-slate-700/50 rounded-lg"></div>
 				{/each}
 			</div>
