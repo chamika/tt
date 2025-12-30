@@ -165,7 +165,7 @@
   - [ ] Highlight invalid fixtures
 - [ ] Add server-side validation
 - [ ] Implement past vs future match filtering
-  - [ ] Mark past matches as read-only
+  - [ ] Mark past matches as read-only unless explicitly allowed
   - [ ] Different styling for past matches
   - [ ] Filter toggle
 - [ ] Calculate player summary statistics
@@ -199,9 +199,6 @@
 - [ ] Analyze bundle size
 
 ### Monitoring & Analytics
-- [ ] Add error tracking (e.g., Sentry)
-- [ ] Add analytics (e.g., Cloudflare Analytics)
-- [ ] Add performance monitoring
 - [ ] Add logging for important events
 
 ### Documentation
@@ -240,6 +237,10 @@
 - [ ] Add optimistic UI updates
 - [ ] Add conflict resolution
 - [ ] Consider WebSockets for future enhancement
+- [ ] Add error tracking (e.g., Sentry)
+- [ ] Add analytics (e.g., Cloudflare Analytics)
+- [ ] Add performance monitoring
+
 ---
 
 ## Notes
