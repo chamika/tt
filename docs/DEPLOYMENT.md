@@ -203,7 +203,8 @@ VITE_API_URL=https://api.yourdomain.com
 
 3. **Environment Variables**
    - Add variable: `VITE_API_URL`
-   - Value: Your worker URL (e.g., `https://tabletennis-prod.your-subdomain.workers.dev`)
+   - Value: Your worker URL (e.g., `https://tabletennis-prod.your-subdomain.workers.dev/api`)
+   - Note: Must include `/api` suffix
 
 4. **Deploy**
    - Click "Save and Deploy"

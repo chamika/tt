@@ -21,7 +21,8 @@ export type {
 export type AvailabilityMap = Record<string, boolean>;
 export type FinalSelectionsMap = Record<string, string[]>;
 
-const API_BASE_URL = 'http://localhost:8787/api';
+// Use environment variable for API URL, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
 /**
  * Import a team from ELTTL URL

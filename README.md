@@ -79,6 +79,10 @@ tt/
 ```bash
 cd frontend
 npm install
+
+# Set up environment variables (first time only)
+cp .env.example .env
+
 npm run dev -- --host
 ```
 
@@ -184,7 +188,10 @@ npm run db:migrate:production
 ### Environment Variables
 
 **Frontend (`.env` or Cloudflare Pages):**
-- `VITE_API_URL` - Worker API URL (e.g., `https://tabletennis-prod.workers.dev`)
+- `VITE_API_URL` - Worker API URL (e.g., `https://tabletennis-prod.workers.dev/api`)
+  - **Important**: Must include `/api` suffix
+  - For local development: `http://localhost:8787/api`
+  - Copy `.env.example` to `.env` and update the URL
 
 **Worker (`wrangler.toml`):**
 - `database_id` - Cloudflare D1 database ID

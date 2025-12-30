@@ -22,11 +22,17 @@ A comprehensive player availability tracking system for table tennis teams in th
 ## Architecture
 
 ### Tech Stack
-- **Frontend**: SvelteKit with TypeScript
+- **Frontend**: SvelteKit with TypeScript (client-side rendering)
 - **Backend**: Cloudflare Workers with Hono
 - **Database**: Cloudflare D1 (SQLite)
 - **Styling**: TailwindCSS
 - **Testing**: Vitest (unit), Playwright (E2E)
+
+### Architecture
+- **Decoupled Design**: Frontend and backend are fully independent
+- **Client-Side Rendering**: All data fetching happens in the browser
+- **API-First**: RESTful API with JSON responses
+- **Deployment**: Frontend on Cloudflare Pages, Backend on Cloudflare Workers
 
 ### Database Schema
 
@@ -143,10 +149,13 @@ npm run dev
 Terminal 2 - Frontend:
 ```bash
 cd frontend
+cp .env.example .env  # First time only
 npm run dev
 ```
 
 The app will be available at `http://localhost:5173`
+
+**Note**: The frontend makes API calls to `http://localhost:8787/api` by default. Update `.env` file if your worker runs on a different port.
 
 ### Running Tests
 
