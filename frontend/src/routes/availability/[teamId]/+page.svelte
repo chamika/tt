@@ -1,6 +1,7 @@
 <!-- Main Availability Tracker Page -->
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { ArrowLeft, Users, Calendar as CalendarIcon, PencilLine } from 'lucide-svelte';
 	import FixtureCard from '$lib/components/availability/FixtureCard.svelte';
 	import FixtureCardSkeleton from '$lib/components/availability/FixtureCardSkeleton.svelte';
@@ -13,6 +14,11 @@
 
 	// Get teamId from URL params
 	const teamId = $page.params.teamId;
+	
+	// Redirect if no teamId
+	if (!teamId) {
+		goto('/availability');
+	}
 
 	// State for team data
 	let team = $state<Team | null>(null);
@@ -35,6 +41,8 @@
 	});
 
 	async function loadTeamData() {
+		if (!teamId) return;
+		
 		loadingTeamData = true;
 		error = null;
 		

@@ -8,9 +8,5 @@ export default defineConfig({
 	},
 	build: {
 		sourcemap: true
-	},
-	test: {
-		include: ['src/**/*.test.ts'],
-		exclude: ['e2e/**', 'node_modules/**']
 	}
 });
