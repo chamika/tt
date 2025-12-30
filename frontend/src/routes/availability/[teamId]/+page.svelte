@@ -191,6 +191,7 @@
 				Season Stats Summary
 			</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{#each Array(players.length || 3) as _, i (i)}
 					<PlayerSummaryCardSkeleton />
 				{/each}
@@ -216,6 +217,7 @@
 				Upcoming Fixtures
 			</h2>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{#each Array(3) as _, i (i)}
 					<FixtureCardSkeleton />
 				{/each}
@@ -262,6 +264,7 @@
 				Past Fixtures
 			</h2>
 			<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{#each Array(2) as _, i (i)}
 					<FixtureCardSkeleton />
 				{/each}

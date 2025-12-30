@@ -13,6 +13,7 @@
 		<!-- Availability Section -->
 		<div class="space-y-2 mb-6">
 			<div class="h-4 bg-gray-200 dark:bg-slate-700 rounded w-32 mb-3"></div>
+			<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 			{#each Array(5) as _, i (i)}
 				<div class="flex items-center gap-3 p-2 min-h-[44px]">
 					<div class="w-4 h-4 bg-gray-200 dark:bg-slate-700 rounded"></div>
@@ -29,6 +30,7 @@
 				<div class="h-6 w-12 bg-gray-200 dark:bg-slate-700 rounded-full"></div>
 			</div>
 			<div class="space-y-2">
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{#each Array(3) as _, i (i)}
 					<div class="h-10 bg-gray-100 dark:bg-slate-700/50 rounded-lg"></div>
 				{/each}
