@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { compress } from 'hono/compress';
 import type { Env, ImportTeamRequest, ImportTeamResponse } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
@@ -7,22 +8,45 @@ import { isValidELTTLUrl, parseMatchDate } from './utils';
 
 const app = new Hono<{ Bindings: Env }>();
 
+// Logging utility
+function log(level: 'info' | 'error' | 'warn', message: string, meta?: Record<string, any>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...meta
+  };
+  console.log(JSON.stringify(logEntry));
+}
+
 // Enable CORS for frontend
 app.use('/*', cors());
 
+// Enable compression for all responses
+app.use('/*', compress());
+
 // Health check endpoint
 app.get('/api/health', (c) => {
+  log('info', 'Health check requested');
+  
+  // Cache for 1 minute
+  c.header('Cache-Control', 'public, max-age=60');
+  
   return c.json({ status: 'ok', timestamp: Date.now() });
 });
 
 // Import team from ELTTL URL
 app.post('/api/availability/import', async (c) => {
+  const startTime = Date.now();
   try {
     const body = await c.req.json<ImportTeamRequest>();
     const { elttlUrl } = body;
 
+    log('info', 'Import team requested', { elttlUrl });
+
     // Validate URL
     if (!elttlUrl || !isValidELTTLUrl(elttlUrl)) {
+      log('warn', 'Invalid ELTTL URL', { elttlUrl });
       return c.json({ error: 'Invalid ELTTL URL format' }, 400);
     }
 
@@ -31,6 +55,7 @@ app.post('/api/availability/import', async (c) => {
     // Check if team already exists
     const existingTeam = await db.getTeamByUrl(elttlUrl);
     if (existingTeam) {
+      log('info', 'Team already exists', { teamId: existingTeam.id, elttlUrl });
       return c.json<ImportTeamResponse>({
         success: true,
         teamId: existingTeam.id,
@@ -39,6 +64,7 @@ app.post('/api/availability/import', async (c) => {
     }
 
     // Scrape team data from ELTTL
+    log('info', 'Starting scrape', { elttlUrl });
     const scrapedData = await scrapeELTTLTeam(elttlUrl);
 
     // Create team
@@ -71,13 +97,26 @@ app.post('/api/availability/import', async (c) => {
       }
     }
 
+    const duration = Date.now() - startTime;
+    log('info', 'Team import successful', { 
+      teamId: team.id, 
+      elttlUrl,
+      playerCount: scrapedData.players.length,
+      fixtureCount: scrapedData.fixtures.length,
+      durationMs: duration
+    });
+
     return c.json<ImportTeamResponse>({
       success: true,
       teamId: team.id,
       redirect: `/availability/${team.id}`
     });
   } catch (error) {
-    console.error('Import error:', error);
+    const duration = Date.now() - startTime;
+    log('error', 'Import failed', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs: duration
+    });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to import team' 
     }, 500);
@@ -87,11 +126,14 @@ app.post('/api/availability/import', async (c) => {
 app.get('/api/availability/:teamId', async (c) => {
   try {
     const teamId = c.req.param('teamId');
+    log('info', 'Get team data requested', { teamId });
+    
     const db = new DatabaseService(c.env.DB);
 
     // Get team
     const team = await db.getTeam(teamId);
     if (!team) {
+      log('warn', 'Team not found', { teamId });
       return c.json({ error: 'Team not found' }, 404);
     }
 
@@ -119,6 +161,15 @@ app.get('/api/availability/:teamId', async (c) => {
       finalSelectionsMap[selection.fixture_id].push(selection.player_id);
     }
 
+    // Cache for 30 seconds (data changes frequently)
+    c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    
+    log('info', 'Team data retrieved', { 
+      teamId, 
+      fixtureCount: fixtures.length,
+      playerCount: players.length
+    });
+
     return c.json({
       team,
       fixtures,
@@ -127,7 +178,10 @@ app.get('/api/availability/:teamId', async (c) => {
       finalSelections: finalSelectionsMap
     });
   } catch (error) {
-    console.error('Get team data error:', error);
+    log('error', 'Get team data failed', { 
+      teamId: c.req.param('teamId'),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to get team data' 
     }, 500);
@@ -139,7 +193,10 @@ app.patch('/api/availability/:teamId/fixture/:fixtureId/player/:playerId', async
     const { teamId, fixtureId, playerId } = c.req.param();
     const body = await c.req.json<{ isAvailable: boolean }>();
     
+    log('info', 'Update availability requested', { teamId, fixtureId, playerId, isAvailable: body.isAvailable });
+    
     if (typeof body.isAvailable !== 'boolean') {
+      log('warn', 'Invalid availability value', { teamId, fixtureId, playerId });
       return c.json({ error: 'isAvailable must be a boolean' }, 400);
     }
 
@@ -160,6 +217,8 @@ app.patch('/api/availability/:teamId/fixture/:fixtureId/player/:playerId', async
     // Update availability
     await db.updateAvailability(fixtureId, playerId, body.isAvailable);
 
+    log('info', 'Availability updated', { teamId, fixtureId, playerId, isAvailable: body.isAvailable });
+
     return c.json({ 
       success: true,
       fixtureId,
@@ -167,7 +226,12 @@ app.patch('/api/availability/:teamId/fixture/:fixtureId/player/:playerId', async
       isAvailable: body.isAvailable
     });
   } catch (error) {
-    console.error('Update availability error:', error);
+    log('error', 'Update availability failed', {
+      teamId: c.req.param('teamId'),
+      fixtureId: c.req.param('fixtureId'),
+      playerId: c.req.param('playerId'),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to update availability' 
     }, 500);
@@ -179,12 +243,16 @@ app.post('/api/availability/:teamId/fixture/:fixtureId/selection', async (c) => 
     const { teamId, fixtureId } = c.req.param();
     const body = await c.req.json<{ playerIds: string[] }>();
     
+    log('info', 'Set final selection requested', { teamId, fixtureId, playerCount: body.playerIds?.length });
+    
     if (!Array.isArray(body.playerIds)) {
+      log('warn', 'Invalid playerIds format', { teamId, fixtureId });
       return c.json({ error: 'playerIds must be an array' }, 400);
     }
 
     // Validate 0-3 players
     if (body.playerIds.length > 3) {
+      log('warn', 'Too many players selected', { teamId, fixtureId, count: body.playerIds.length });
       return c.json({ error: 'Maximum 3 players can be selected' }, 400);
     }
 
@@ -225,13 +293,19 @@ app.post('/api/availability/:teamId/fixture/:fixtureId/selection', async (c) => 
       await db.createFinalSelection(fixtureId, playerId);
     }
 
+    log('info', 'Final selection updated', { teamId, fixtureId, playerIds: body.playerIds });
+
     return c.json({ 
       success: true,
       fixtureId,
       playerIds: body.playerIds
     });
   } catch (error) {
-    console.error('Set final selection error:', error);
+    log('error', 'Set final selection failed', {
+      teamId: c.req.param('teamId'),
+      fixtureId: c.req.param('fixtureId'),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to set final selection' 
     }, 500);
@@ -241,11 +315,14 @@ app.post('/api/availability/:teamId/fixture/:fixtureId/selection', async (c) => 
 app.get('/api/availability/:teamId/summary', async (c) => {
   try {
     const teamId = c.req.param('teamId');
+    log('info', 'Get player summary requested', { teamId });
+    
     const db = new DatabaseService(c.env.DB);
 
     // Get team
     const team = await db.getTeam(teamId);
     if (!team) {
+      log('warn', 'Team not found', { teamId });
       return c.json({ error: 'Team not found' }, 404);
     }
 
@@ -291,9 +368,17 @@ app.get('/api/availability/:teamId/summary', async (c) => {
       };
     });
 
+    // Cache for 1 minute (summary data changes less frequently)
+    c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    
+    log('info', 'Player summary retrieved', { teamId, playerCount: summary.length });
+
     return c.json({ summary });
   } catch (error) {
-    console.error('Get player summary error:', error);
+    log('error', 'Get player summary failed', {
+      teamId: c.req.param('teamId'),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to get player summary' 
     }, 500);
