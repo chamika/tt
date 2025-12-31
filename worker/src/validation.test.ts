@@ -243,7 +243,7 @@ describe('Player Summary Calculations', () => {
 
 	it('should calculate 100% selection rate', () => {
 		const gamesScheduled = 5;
-		const totalGames = gamesScheduled;
+		const totalGames = 5;
 
 		const selectionRate = Math.round((gamesScheduled / totalGames) * 100);
 
