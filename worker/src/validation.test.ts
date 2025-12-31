@@ -225,9 +225,7 @@ describe('Player Summary Calculations', () => {
 		const gamesScheduled = 3;
 		const totalGames = gamesPlayed + gamesScheduled; // 8
 
-		const selectionRate = totalGames > 0 
-			? Math.round((gamesScheduled / totalGames) * 100) 
-			: 0;
+		const selectionRate = Math.round((gamesScheduled / totalGames) * 100);
 
 		expect(selectionRate).toBe(38); // 3/8 = 37.5% rounds to 38%
 	});
@@ -244,13 +242,10 @@ describe('Player Summary Calculations', () => {
 	});
 
 	it('should calculate 100% selection rate', () => {
-		const gamesPlayed = 0;
 		const gamesScheduled = 5;
 		const totalGames = gamesScheduled;
 
-		const selectionRate = totalGames > 0 
-			? Math.round((gamesScheduled / totalGames) * 100) 
-			: 0;
+		const selectionRate = Math.round((gamesScheduled / totalGames) * 100);
 
 		expect(selectionRate).toBe(100);
 	});
