@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ "$CF_PAGES_BRANCH" = "main" ]; then
   export VITE_API_URL="https://tabletennis.chamika.workers.dev/api"
 else
