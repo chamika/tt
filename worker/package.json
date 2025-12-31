@@ -5,13 +5,30 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --local",
-    "publish": "wrangler publish"
+    "publish": "wrangler publish",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "db:migrate:local": "wrangler d1 execute tabletennis-availability --local --file=./schema.sql --yes",
+    "db:migrate:staging": "wrangler d1 execute tabletennis-availability-staging --env staging --remote --file=./schema.sql --yes",
+    "db:migrate:production": "wrangler d1 execute tabletennis-availability-prod --env production --remote --file=./schema.sql --yes",
+    "db:seed:local": "wrangler d1 execute tabletennis-availability --local --file=./seed.sql --yes",
+    "db:seed:staging": "wrangler d1 execute tabletennis-availability-staging  --env staging --remote --file=./seed.sql --yes",
+    "db:seed:production": "wrangler d1 execute tabletennis-availability-prod --env production --remote --file=./seed.sql --yes",
+    "db:create:staging": "wrangler d1 create tabletennis-availability-staging",
+    "db:create:production": "wrangler d1 create tabletennis-availability-prod",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "seed": "wrangler d1 execute tabletennis-availability --local --file=./seed.sql"
   },
   "dependencies": {
-    "hono": "^3.3.3"
+    "hono": "^4.11.3",
+    "node-html-parser": "^7.0.1"
   },
   "devDependencies": {
-    "wrangler": "^3.15.0",
-    "typescript": "^5.1.0"
+    "typescript": "^5.1.0",
+    "vitest": "^4.0.16",
+    "wrangler": "^4.54.0"
   }
 }

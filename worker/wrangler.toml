@@ -1,5 +1,43 @@
+# Cloudflare Workers configuration file
+
 name = "tabletennis"
 compatibility_date = "2025-12-01"
 workers_dev = true
 type = "javascript"
 main = "src/index.ts"
+
+# Development D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability"
+database_id = "315f71c2-49c5-4296-b695-9f01113e18db"
+
+# Production Environment
+# [env.production]
+# name = "tabletennis"
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability-prod"
+database_id = "e2440329-c6fa-469f-93ed-7ff7faecef1a"
+
+# Staging Environment
+# [env.staging]
+# name = "tabletennis"
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "tabletennis-availability-staging"
+database_id = "3913705b-3bbd-4722-929e-44742cdbabf7"
+
+# Deployment Configuration
+# - Development uses local database: wrangler dev --local
+# - Staging: wrangler deploy --env staging
+# - Production: wrangler deploy --env production
+# 
+# Create production database:
+# wrangler d1 create tabletennis-availability-prod
+# 
+# Run migrations:
+# wrangler d1 execute tabletennis-availability-prod --file=schema.sql
+# 
+# Seed data (optional):
+# wrangler d1 execute tabletennis-availability-prod --file=seed.sql

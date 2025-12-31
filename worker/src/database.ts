@@ -1,0 +1,231 @@
+import type { Env, Team, Fixture, Player, Availability, FinalSelection } from './types';
+import { generateUUID, now, isPastDate } from './utils';
+
+/**
+ * Database service for D1 operations
+ */
+export class DatabaseService {
+  constructor(private db: D1Database) {}
+
+  // Teams
+  async createTeam(name: string, elttlUrl: string): Promise<Team> {
+    const id = generateUUID();
+    const timestamp = now();
+    
+    await this.db
+      .prepare('INSERT INTO teams (id, name, elttl_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, name, elttlUrl, timestamp, timestamp)
+      .run();
+
+    return {
+      id,
+      name,
+      elttl_url: elttlUrl,
+      created_at: timestamp,
+      updated_at: timestamp
+    };
+  }
+
+  async getTeam(teamId: string): Promise<Team | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM teams WHERE id = ?')
+      .bind(teamId)
+      .first<Team>();
+    
+    return result;
+  }
+
+  async getTeamByUrl(elttlUrl: string): Promise<Team | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM teams WHERE elttl_url = ?')
+      .bind(elttlUrl)
+      .first<Team>();
+    
+    return result;
+  }
+
+  // Fixtures
+  async createFixture(
+    teamId: string,
+    matchDate: string,
+    dayTime: string,
+    homeTeam: string,
+    awayTeam: string,
+    venue?: string
+  ): Promise<Fixture> {
+    const id = generateUUID();
+    const timestamp = now();
+    const isPast = isPastDate(matchDate) ? 1 : 0;
+
+    await this.db
+      .prepare(`
+        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, is_past, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(id, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, isPast, timestamp)
+      .run();
+
+    return {
+      id,
+      team_id: teamId,
+      match_date: matchDate,
+      day_time: dayTime,
+      home_team: homeTeam,
+      away_team: awayTeam,
+      venue: venue || null,
+      is_past: isPast,
+      created_at: timestamp
+    };
+  }
+
+  async getFixtures(teamId: string): Promise<Fixture[]> {
+    const result = await this.db
+      .prepare('SELECT * FROM fixtures WHERE team_id = ? ORDER BY match_date ASC')
+      .bind(teamId)
+      .all<Fixture>();
+    
+    return result.results || [];
+  }
+
+  async getFixture(fixtureId: string): Promise<Fixture | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM fixtures WHERE id = ?')
+      .bind(fixtureId)
+      .first<Fixture>();
+    
+    return result;
+  }
+
+  // Players
+  async createPlayer(teamId: string, name: string): Promise<Player> {
+    const id = generateUUID();
+    const timestamp = now();
+
+    await this.db
+      .prepare('INSERT INTO players (id, team_id, name, created_at) VALUES (?, ?, ?, ?)')
+      .bind(id, teamId, name, timestamp)
+      .run();
+
+    return {
+      id,
+      team_id: teamId,
+      name,
+      created_at: timestamp
+    };
+  }
+
+  async getPlayers(teamId: string): Promise<Player[]> {
+    const result = await this.db
+      .prepare('SELECT * FROM players WHERE team_id = ? ORDER BY name ASC')
+      .bind(teamId)
+      .all<Player>();
+    
+    return result.results || [];
+  }
+
+  async getPlayer(playerId: string): Promise<Player | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM players WHERE id = ?')
+      .bind(playerId)
+      .first<Player>();
+    
+    return result;
+  }
+
+  // Availability
+  async createAvailability(fixtureId: string, playerId: string, isAvailable: boolean): Promise<Availability> {
+    const id = generateUUID();
+    const timestamp = now();
+
+    await this.db
+      .prepare('INSERT INTO availability (id, fixture_id, player_id, is_available, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, fixtureId, playerId, isAvailable ? 1 : 0, timestamp)
+      .run();
+
+    return {
+      id,
+      fixture_id: fixtureId,
+      player_id: playerId,
+      is_available: isAvailable ? 1 : 0,
+      updated_at: timestamp
+    };
+  }
+
+  async updateAvailability(fixtureId: string, playerId: string, isAvailable: boolean): Promise<void> {
+    const timestamp = now();
+
+    await this.db
+      .prepare('UPDATE availability SET is_available = ?, updated_at = ? WHERE fixture_id = ? AND player_id = ?')
+      .bind(isAvailable ? 1 : 0, timestamp, fixtureId, playerId)
+      .run();
+  }
+
+  async getAvailability(teamId: string): Promise<Availability[]> {
+    const result = await this.db
+      .prepare(`
+        SELECT a.* FROM availability a
+        JOIN fixtures f ON a.fixture_id = f.id
+        WHERE f.team_id = ?
+      `)
+      .bind(teamId)
+      .all<Availability>();
+    
+    return result.results || [];
+  }
+
+  async getAvailabilityForFixture(fixtureId: string): Promise<Availability[]> {
+    const result = await this.db
+      .prepare('SELECT * FROM availability WHERE fixture_id = ?')
+      .bind(fixtureId)
+      .all<Availability>();
+    
+    return result.results || [];
+  }
+
+  // Final Selections
+  async createFinalSelection(fixtureId: string, playerId: string): Promise<FinalSelection> {
+    const id = generateUUID();
+    const timestamp = now();
+
+    await this.db
+      .prepare('INSERT INTO final_selections (id, fixture_id, player_id, selected_at) VALUES (?, ?, ?, ?)')
+      .bind(id, fixtureId, playerId, timestamp)
+      .run();
+
+    return {
+      id,
+      fixture_id: fixtureId,
+      player_id: playerId,
+      selected_at: timestamp
+    };
+  }
+
+  async clearFinalSelections(fixtureId: string): Promise<void> {
+    await this.db
+      .prepare('DELETE FROM final_selections WHERE fixture_id = ?')
+      .bind(fixtureId)
+      .run();
+  }
+
+  async getFinalSelections(teamId: string): Promise<FinalSelection[]> {
+    const result = await this.db
+      .prepare(`
+        SELECT fs.* FROM final_selections fs
+        JOIN fixtures f ON fs.fixture_id = f.id
+        WHERE f.team_id = ?
+      `)
+      .bind(teamId)
+      .all<FinalSelection>();
+    
+    return result.results || [];
+  }
+
+  async getFinalSelectionsByFixture(fixtureId: string): Promise<FinalSelection[]> {
+    const result = await this.db
+      .prepare('SELECT * FROM final_selections WHERE fixture_id = ?')
+      .bind(fixtureId)
+      .all<FinalSelection>();
+    
+    return result.results || [];
+  }
+}

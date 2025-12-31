@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   frontend:
@@ -41,6 +41,23 @@ jobs:
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+
+      - name: Setup Worker for E2E Tests
+        working-directory: worker
+        run: |
+          npm ci
+          npm run db:migrate:local
+          npm run seed
+
+      - name: Start Worker Dev Server
+        working-directory: worker
+        run: npm run dev &
+        env:
+          CI: true
+
+      - name: Wait for Worker to be Ready
+        run: |
+          timeout 30 bash -c 'until curl -s http://localhost:8787/api/health > /dev/null; do sleep 1; done' || exit 1
 
       - name: E2E Tests
         run: npm run test:e2e
