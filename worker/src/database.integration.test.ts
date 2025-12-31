@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { DatabaseService } from './database';
 
 // Note: These are integration tests that require a real D1 database instance

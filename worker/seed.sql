@@ -13,7 +13,7 @@ INSERT INTO teams (id, name, elttl_url, created_at, updated_at)
 VALUES (
   '00000000-0000-0000-0000-000000000000',
   'Test Team E2E',
-  'https://www.elttl.co.uk/Availability.aspx?FixtureId=0&TeamId=999',
+  'https://elttl.interactive.co.uk/teams/view/999',
   strftime('%s', 'now'),
   strftime('%s', 'now')
 );

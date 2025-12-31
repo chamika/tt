@@ -1,5 +1,5 @@
 import type { Env, Team, Fixture, Player, Availability, FinalSelection } from './types';
-import { generateUUID, now, isPastDate, getAvailabilityKey } from './utils';
+import { generateUUID, now, isPastDate } from './utils';
 
 /**
  * Database service for D1 operations
