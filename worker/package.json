@@ -8,7 +8,6 @@
     "publish": "wrangler publish",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
-    "deploy:branch": "sh -c 'wrangler versions upload --env staging --preview-alias $(git branch --show-current)'",
     "deploy:production": "wrangler deploy --env production",
     "db:migrate:local": "wrangler d1 execute tabletennis-availability --local --file=./schema.sql --yes",
     "db:migrate:staging": "wrangler d1 execute tabletennis-availability-staging --env staging --remote --file=./schema.sql --yes",
