@@ -25,8 +25,8 @@ app.use('/*', cors());
 app.get('/api/health', (c) => {
   log('info', 'Health check requested');
   
-  // Cache for 1 minute
-  c.header('Cache-Control', 'public, max-age=60');
+  // Cache disabled
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
   
   return c.json({ status: 'ok', timestamp: Date.now() });
 });
@@ -157,8 +157,8 @@ app.get('/api/availability/:teamId', async (c) => {
       finalSelectionsMap[selection.fixture_id].push(selection.player_id);
     }
 
-    // Cache for 30 seconds (data changes frequently)
-    c.header('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    // Cache disabled
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
     
     log('info', 'Team data retrieved', { 
       teamId, 
@@ -364,8 +364,8 @@ app.get('/api/availability/:teamId/summary', async (c) => {
       };
     });
 
-    // Cache for 1 minute (summary data changes less frequently)
-    c.header('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    // Cache disabled
+    c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
     
     log('info', 'Player summary retrieved', { teamId, playerCount: summary.length });
 
