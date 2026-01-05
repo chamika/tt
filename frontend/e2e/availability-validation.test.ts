@@ -305,15 +305,16 @@ test.describe('Player Summary Statistics', () => {
 		await syncNowButton.waitFor({ state: 'visible' });
 		await syncNowButton.click();
 		
-		// Wait for sync operation to complete by waiting for button to not be disabled
-		// The button might briefly show "Syncing..." before completing
-		await page.waitForFunction(() => {
-			const buttons = Array.from(document.querySelectorAll('button'));
-			const syncBtn = buttons.find(btn => btn.textContent?.includes('Sync Fixtures'));
-			return syncBtn && !syncBtn.textContent?.includes('Syncing');
-		}, { timeout: 5000 }).catch(() => {
-			// Sync might complete too quickly, which is fine
-		});
+		// Wait for sync operation to complete
+		// Either the button will briefly show "Syncing..." or sync completes immediately
+		try {
+			// Try to wait for the syncing state to appear and then disappear
+			const syncingButton = page.locator('button:has-text("Syncing...")');
+			await syncingButton.waitFor({ state: 'visible', timeout: 1000 });
+			await syncingButton.waitFor({ state: 'hidden', timeout: 5000 });
+		} catch {
+			// Sync might complete too quickly to catch the intermediate state
+		}
 		
 		// After sync, button should be back to normal state
 		await expect(syncButton).toBeVisible();
