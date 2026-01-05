@@ -6,6 +6,7 @@ import type {
   ImportTeamResponse,
   UpdateAvailabilityRequest,
   SetFinalSelectionRequest,
+  SyncResponse,
   ApiError
 } from '$lib/types/availability';
 
@@ -15,7 +16,8 @@ export type {
   Fixture,
   Player,
   TeamData,
-  PlayerSummary
+  PlayerSummary,
+  SyncResponse
 } from '$lib/types/availability';
 
 export type AvailabilityMap = Record<string, boolean>;
@@ -122,4 +124,23 @@ export async function getPlayerSummary(teamId: string): Promise<PlayerSummary[]>
 
   const data = await response.json();
   return data.summary;
+}
+
+/**
+ * Sync fixtures from ELTTL URL
+ */
+export async function syncFixtures(teamId: string): Promise<SyncResponse> {
+  const response = await fetch(`${API_BASE_URL}/availability/${teamId}/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const error: ApiError = await response.json();
+    throw new Error(error.error || 'Failed to sync fixtures');
+  }
+
+  return response.json();
 }

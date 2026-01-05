@@ -30,8 +30,8 @@ Following the logic in your CSV (where the "Final Schedule" columns and count in
 * Live Summary Table: A footer or sidebar will display:  
   | Player | Games Played (Past) | Games Scheduled (Future) | Total |  
   | :--- | :---: | :---: | :---: |  
-  | Aiden | 5 | 3 | 8 |  
-  | Chamika | 2 | 4 | 6 |
+  | PlayerA | 5 | 3 | 8 |  
+  | PlayerB | 2 | 4 | 6 |
 
 ### ---
 
@@ -43,8 +43,8 @@ Following the logic in your CSV (where the "Final Schedule" columns and count in
    JSON  
    {  
      "match\_id": "penicuik_iv_vs_corstorphine_iii",  
-     "availability": { "Aiden": true, "Chamika": false },  
-     "final\_selection": \["Aiden", "Ian", "Jay"\]  
+     "availability": { "PlayerA": true, "PlayerB": false },  
+     "final\_selection": \["PlayerA", "PlayerB", "PlayerC"\]  
    }
 
 

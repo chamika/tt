@@ -5,17 +5,17 @@ import { scrapeELTTLTeam } from './scraper';
 const mockValidHTML = `
 <!DOCTYPE html>
 <html>
-<head><title>Penicuik IV (PTTC4) - ELTTL</title></head>
+<head><title>Test Team IV (TT4) - ELTTL</title></head>
 <body>
-  <h1>Penicuik IV (PTTC4)</h1>
+  <h1>Test Team IV (TT4)</h1>
   
   <h2>Team Members</h2>
   <ul>
-    <li><a href="/people/view/1051">Aidan Craig</a></li>
-    <li><a href="/people/view/1056">Chamika Diyunugalge</a></li>
-    <li><a href="/people/view/209">Ian Hislop</a></li>
-    <li><a href="/people/view/1267">Jay Jayalath</a></li>
-    <li><a href="/people/view/1053">Patrick Shanks</a></li>
+    <li><a href="/people/view/1051">Player A</a></li>
+    <li><a href="/people/view/1056">Player B</a></li>
+    <li><a href="/people/view/209">Player C</a></li>
+    <li><a href="/people/view/1267">Player D</a></li>
+    <li><a href="/people/view/1053">Player E</a></li>
   </ul>
   
   <h2>Fixture List</h2>
@@ -34,25 +34,25 @@ const mockValidHTML = `
       <tr>
         <td>Sep 16</td>
         <td>Tue 18:45</td>
-        <td>Corstorphine III</td>
+        <td>Opposition Team A</td>
         <td>1 - 9</td>
-        <td>Penicuik IV</td>
+        <td>Test Team IV</td>
         <td></td>
       </tr>
       <tr>
         <td>Sep 24</td>
         <td>Wed 18:45</td>
-        <td>Penicuik IV</td>
+        <td>Test Team IV</td>
         <td>8 - 2</td>
-        <td>Edinburgh University V</td>
+        <td>Opposition Team B</td>
         <td></td>
       </tr>
       <tr>
         <td>Sep 29</td>
         <td>Mon 18:30</td>
-        <td>Murrayfield IX @ GYLE</td>
+        <td>Opposition Team C @ VENUE1</td>
         <td>4 - 6</td>
-        <td>Penicuik IV</td>
+        <td>Test Team IV</td>
         <td></td>
       </tr>
       <tr>
@@ -66,9 +66,9 @@ const mockValidHTML = `
       <tr>
         <td>Jan 7</td>
         <td>Wed 18:45</td>
-        <td>Penicuik IV</td>
+        <td>Test Team IV</td>
         <td></td>
-        <td>Corstorphine II</td>
+        <td>Opposition Team D</td>
         <td>Rescheduled</td>
       </tr>
     </tbody>
@@ -132,15 +132,15 @@ describe('scrapeELTTLTeam', () => {
     const result = await scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/839');
 
     // Verify team name extraction
-    expect(result.teamName).toBe('Penicuik IV');
+    expect(result.teamName).toBe('Test Team IV');
 
     // Verify players extraction
     expect(result.players).toHaveLength(5);
-    expect(result.players).toContain('Aidan Craig');
-    expect(result.players).toContain('Chamika Diyunugalge');
-    expect(result.players).toContain('Ian Hislop');
-    expect(result.players).toContain('Jay Jayalath');
-    expect(result.players).toContain('Patrick Shanks');
+    expect(result.players).toContain('Player A');
+    expect(result.players).toContain('Player B');
+    expect(result.players).toContain('Player C');
+    expect(result.players).toContain('Player D');
+    expect(result.players).toContain('Player E');
 
     // Verify fixtures extraction
     expect(result.fixtures).toHaveLength(4); // 4 valid fixtures (excluding FREE WEEK)
@@ -149,8 +149,8 @@ describe('scrapeELTTLTeam', () => {
     expect(result.fixtures[0]).toEqual({
       date: 'Sep 16',
       time: 'Tue 18:45',
-      homeTeam: 'Corstorphine III',
-      awayTeam: 'Penicuik IV',
+      homeTeam: 'Opposition Team A',
+      awayTeam: 'Test Team IV',
       venue: undefined
     });
 
@@ -158,9 +158,9 @@ describe('scrapeELTTLTeam', () => {
     expect(result.fixtures[2]).toEqual({
       date: 'Sep 29',
       time: 'Mon 18:30',
-      homeTeam: 'Murrayfield IX @ GYLE',
-      awayTeam: 'Penicuik IV',
-      venue: 'GYLE'
+      homeTeam: 'Opposition Team C @ VENUE1',
+      awayTeam: 'Test Team IV',
+      venue: 'VENUE1'
     });
   });
 
@@ -172,9 +172,9 @@ describe('scrapeELTTLTeam', () => {
 
     const result = await scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/839');
     
-    // Should be "Penicuik IV" not "Penicuik IV (PTTC4)"
-    expect(result.teamName).toBe('Penicuik IV');
-    expect(result.teamName).not.toContain('PTTC4');
+    // Should be "Test Team IV" not "Test Team IV (TT4)"
+    expect(result.teamName).toBe('Test Team IV');
+    expect(result.teamName).not.toContain('TT4');
     expect(result.teamName).not.toContain('(');
   });
 
@@ -204,9 +204,9 @@ describe('scrapeELTTLTeam', () => {
 
     const result = await scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/839');
     
-    const venueFixture = result.fixtures.find(f => f.homeTeam.includes('@ GYLE'));
+    const venueFixture = result.fixtures.find(f => f.homeTeam.includes('@ VENUE1'));
     expect(venueFixture).toBeDefined();
-    expect(venueFixture?.venue).toBe('GYLE');
+    expect(venueFixture?.venue).toBe('VENUE1');
   });
 
   it('should throw error when fetch fails', async () => {
