@@ -1,5 +1,5 @@
-import type { Env, Team, Fixture, Player, Availability, FinalSelection } from './types';
-import { generateUUID, now, isPastDate } from './utils';
+import type { Env, Team, FixtureRow, Player, Availability, FinalSelection } from './types';
+import { generateUUID, now } from './utils';
 
 /**
  * Database service for D1 operations
@@ -52,17 +52,16 @@ export class DatabaseService {
     homeTeam: string,
     awayTeam: string,
     venue?: string
-  ): Promise<Fixture> {
+  ): Promise<FixtureRow> {
     const id = generateUUID();
     const timestamp = now();
-    const isPast = isPastDate(matchDate) ? 1 : 0;
 
     await this.db
       .prepare(`
-        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, is_past, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .bind(id, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, isPast, timestamp)
+      .bind(id, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, timestamp)
       .run();
 
     return {
@@ -73,44 +72,41 @@ export class DatabaseService {
       home_team: homeTeam,
       away_team: awayTeam,
       venue: venue || null,
-      is_past: isPast,
       created_at: timestamp
     };
   }
 
-  async getFixtures(teamId: string): Promise<Fixture[]> {
+  async getFixtures(teamId: string): Promise<FixtureRow[]> {
     const result = await this.db
       .prepare('SELECT * FROM fixtures WHERE team_id = ? ORDER BY match_date ASC')
       .bind(teamId)
-      .all<Fixture>();
+      .all<FixtureRow>();
     
     return result.results || [];
   }
 
-  async getFixture(fixtureId: string): Promise<Fixture | null> {
+  async getFixture(fixtureId: string): Promise<FixtureRow | null> {
     const result = await this.db
       .prepare('SELECT * FROM fixtures WHERE id = ?')
       .bind(fixtureId)
-      .first<Fixture>();
+      .first<FixtureRow>();
     
     return result;
   }
 
-  async getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string): Promise<Fixture | null> {
+  async getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string): Promise<FixtureRow | null> {
     const result = await this.db
       .prepare('SELECT * FROM fixtures WHERE team_id = ? AND home_team = ? AND away_team = ?')
       .bind(teamId, homeTeam, awayTeam)
-      .first<Fixture>();
+      .first<FixtureRow>();
     
     return result;
   }
 
   async updateFixtureDate(fixtureId: string, matchDate: string, dayTime: string): Promise<void> {
-    const isPast = isPastDate(matchDate) ? 1 : 0;
-
     await this.db
-      .prepare('UPDATE fixtures SET match_date = ?, day_time = ?, is_past = ? WHERE id = ?')
-      .bind(matchDate, dayTime, isPast, fixtureId)
+      .prepare('UPDATE fixtures SET match_date = ?, day_time = ? WHERE id = ?')
+      .bind(matchDate, dayTime, fixtureId)
       .run();
   }
 
@@ -239,14 +235,13 @@ export class DatabaseService {
     dayTime: string,
     playerIds: string[]
   ): Promise<void> {
-    const isPast = isPastDate(matchDate) ? 1 : 0;
     const timestamp = now();
 
     // Build batch of statements
     const statements = [
       // Update fixture date
-      this.db.prepare('UPDATE fixtures SET match_date = ?, day_time = ?, is_past = ? WHERE id = ?')
-        .bind(matchDate, dayTime, isPast, fixtureId),
+      this.db.prepare('UPDATE fixtures SET match_date = ?, day_time = ? WHERE id = ?')
+        .bind(matchDate, dayTime, fixtureId),
       // Clear availability
       this.db.prepare('DELETE FROM availability WHERE fixture_id = ?')
         .bind(fixtureId),
@@ -276,18 +271,17 @@ export class DatabaseService {
     awayTeam: string,
     venue: string | undefined,
     playerIds: string[]
-  ): Promise<Fixture> {
+  ): Promise<FixtureRow> {
     const fixtureId = generateUUID();
     const timestamp = now();
-    const isPast = isPastDate(matchDate) ? 1 : 0;
 
     // Build batch of statements
     const statements = [
       // Create fixture
       this.db.prepare(`
-        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, is_past, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(fixtureId, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, isPast, timestamp),
+        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(fixtureId, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, timestamp),
     ];
 
     // Add availability inserts for each player
@@ -310,7 +304,6 @@ export class DatabaseService {
       home_team: homeTeam,
       away_team: awayTeam,
       venue: venue || null,
-      is_past: isPast,
       created_at: timestamp
     };
   }
