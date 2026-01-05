@@ -204,18 +204,6 @@
 		{/if}
 	</div>
 
-	{#if error}
-		<div class="mb-6">
-			<Notification type="error" message={error} onDismiss={() => error = null} />
-		</div>
-	{/if}
-	
-	{#if successMessage}
-		<div class="mb-6">
-			<Notification type="success" message={successMessage} onDismiss={() => successMessage = null} />
-		</div>
-	{/if}
-
 	<!-- Tabs -->
 	<div class="mb-6 sm:mb-8">
 		<div class="border-b border-gray-200 dark:border-slate-700">
@@ -460,3 +448,20 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Notifications - Fixed position at top right -->
+<div class="fixed top-4 right-4 z-50 max-w-md w-full px-4 pointer-events-none">
+	<div class="pointer-events-auto">
+		{#if error}
+			<div class="mb-3">
+				<Notification type="error" message={error} onDismiss={() => error = null} />
+			</div>
+		{/if}
+		
+		{#if successMessage}
+			<div class="mb-3">
+				<Notification type="success" message={successMessage} onDismiss={() => successMessage = null} />
+			</div>
+		{/if}
+	</div>
+</div>
