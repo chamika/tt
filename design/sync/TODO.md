@@ -5,26 +5,26 @@ Enable users to resynchronize fixture dates with the ELTTL website after matches
 
 ## Backend Implementation
 
-### 1. Database Service Extensions
+### 1. Database Service Extensions ✅
 **File:** `worker/src/database.ts`
 
-- [ ] Add `getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string): Promise<Fixture | null>`
+- [x] Add `getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string): Promise<Fixture | null>`
   - Query fixtures table matching team_id, home_team, and away_team
   - Used to match existing fixtures with scraped data
   
-- [ ] Add `updateFixtureDate(fixtureId: string, matchDate: string, dayTime: string): Promise<void>`
+- [x] Add `updateFixtureDate(fixtureId: string, matchDate: string, dayTime: string): Promise<void>`
   - Update match_date and day_time for a fixture
   - Recalculate is_past using isPastDate()
   - Update updated_at timestamp (add this column if needed)
 
-- [ ] Add `clearAvailabilityForFixture(fixtureId: string): Promise<void>`
+- [x] Add `clearAvailabilityForFixture(fixtureId: string): Promise<void>`
   - Delete all availability records for a fixture
   - Called when fixture date changes
 
-### 2. API Endpoint
+### 2. API Endpoint ✅
 **File:** `worker/src/index.ts`
 
-- [ ] Create `POST /api/availability/{teamId}/sync` endpoint
+- [x] Create `POST /api/availability/{teamId}/sync` endpoint
   - Validate teamId exists in database
   - Fetch team.elttl_url from database
   - Call `scrapeTeamFixtures(elttl_url)` to get current fixtures
@@ -44,10 +44,10 @@ Enable users to resynchronize fixture dates with the ELTTL website after matches
       - Track as new fixture
   - Return SyncResponse with counts
 
-### 3. Type Definitions
+### 3. Type Definitions ✅
 **File:** `worker/src/types.ts`
 
-- [ ] Add `SyncResponse` interface:
+- [x] Add `SyncResponse` interface:
   ```typescript
   export interface SyncResponse {
     success: boolean;
@@ -61,39 +61,39 @@ Enable users to resynchronize fixture dates with the ELTTL website after matches
 
 ## Frontend Implementation
 
-### 4. API Client
+### 4. API Client ✅
 **File:** `frontend/src/lib/api/availability.ts`
 
-- [ ] Add `syncFixtures(teamId: string): Promise<SyncResponse>`
+- [x] Add `syncFixtures(teamId: string): Promise<SyncResponse>`
   - POST to `/api/availability/${teamId}/sync`
   - Handle response with proper error handling
   - Return parsed SyncResponse
 
-### 5. Type Definitions
+### 5. Type Definitions ✅
 **File:** `frontend/src/lib/types/availability.ts`
 
-- [ ] Add `SyncResponse` interface (matching backend)
+- [x] Add `SyncResponse` interface (matching backend)
 
-### 6. UI Implementation
+### 6. UI Implementation ✅
 **File:** `frontend/src/routes/availability/[teamId]/+page.svelte`
 
 #### Tab Structure
-- [ ] Create tab state management
+- [x] Create tab state management
   - Add `currentTab` reactive variable (default: 'fixtures')
   - Add tab navigation buttons/component
   
-- [ ] **Tab 1: Fixtures**
+- [x] **Tab 1: Fixtures**
   - Move existing fixture display logic here
   - Show upcoming fixtures (existing upcoming section)
   - Show past fixtures (existing past section)
   - Keep all existing functionality (availability checkboxes, selections, edit mode)
   
-- [ ] **Tab 2: Stats**
+- [x] **Tab 2: Stats**
   - Move existing "Season Stats Summary" section here
   - Display PlayerSummaryCard components
   - Keep all existing stats functionality
   
-- [ ] **Tab 3: Manage**
+- [x] **Tab 3: Management**
   - Add "Sync Fixtures" button
   - Add confirmation dialog before sync
   - Add loading state during sync operation
@@ -102,7 +102,7 @@ Enable users to resynchronize fixture dates with the ELTTL website after matches
   - Auto-reload team data after successful sync
 
 #### Sync Functionality
-- [ ] Add `handleSync()` function
+- [x] Add `handleSync()` function
   - Show confirmation dialog
   - Set loading state
   - Call `syncFixtures(teamId)`
@@ -110,7 +110,7 @@ Enable users to resynchronize fixture dates with the ELTTL website after matches
   - Reload team data to show updates
   - Handle errors gracefully
 
-- [ ] Add sync state variables
+- [x] Add sync state variables
   - `isSyncing: boolean` - Loading state
   - `syncResult: SyncResponse | null` - Last sync result
   - `showSyncConfirm: boolean` - Confirmation dialog state
