@@ -62,6 +62,15 @@ export interface SetFinalSelectionRequest {
   playerIds: string[];
 }
 
+export interface SyncResponse {
+  success: boolean;
+  fixtures_updated: number;
+  fixtures_unchanged: number;
+  fixtures_new: number;
+  updated_fixture_ids: string[];
+  message: string;
+}
+
 export interface ApiError {
   error: string;
 }

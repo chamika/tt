@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Env, ImportTeamRequest, ImportTeamResponse } from './types';
+import type { Env, ImportTeamRequest, ImportTeamResponse, SyncResponse } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
 import { isValidELTTLUrl, parseMatchDate } from './utils';
@@ -115,6 +115,137 @@ app.post('/api/availability/import', async (c) => {
     });
     return c.json({ 
       error: error instanceof Error ? error.message : 'Failed to import team' 
+    }, 500);
+  }
+});
+
+// Sync fixtures from ELTTL URL
+app.post('/api/availability/:teamId/sync', async (c) => {
+  const startTime = Date.now();
+  try {
+    const teamId = c.req.param('teamId');
+    log('info', 'Fixture sync requested', { teamId });
+
+    const db = new DatabaseService(c.env.DB);
+
+    // Get team to fetch ELTTL URL
+    const team = await db.getTeam(teamId);
+    if (!team) {
+      log('warn', 'Team not found for sync', { teamId });
+      return c.json({ error: 'Team not found' }, 404);
+    }
+
+    // Scrape current fixtures from ELTTL
+    const scrapedData = await scrapeELTTLTeam(team.elttl_url);
+    log('info', 'Scraped fixtures from ELTTL', {
+      teamId,
+      fixtureCount: scrapedData.fixtures.length
+    });
+
+    // Get existing fixtures
+    const existingFixtures = await db.getFixtures(teamId);
+    
+    let fixturesUpdated = 0;
+    let fixturesUnchanged = 0;
+    let fixturesNew = 0;
+    const updatedFixtureIds: string[] = [];
+
+    // Get all players for availability initialization
+    const players = await db.getPlayers(teamId);
+
+    // Process each scraped fixture
+    for (const scraped of scrapedData.fixtures) {
+      const matchDate = parseMatchDate(scraped.date);
+      const dayTime = `${scraped.date} ${scraped.time}`;
+
+      // Try to match with existing fixture
+      const existingFixture = await db.getFixtureByTeams(teamId, scraped.homeTeam, scraped.awayTeam);
+
+      if (existingFixture) {
+        // Check if date has changed
+        if (existingFixture.match_date !== matchDate || existingFixture.day_time !== dayTime) {
+          log('info', 'Fixture date changed', {
+            fixtureId: existingFixture.id,
+            oldDate: existingFixture.match_date,
+            newDate: matchDate,
+            homeTeam: scraped.homeTeam,
+            awayTeam: scraped.awayTeam
+          });
+
+          // Update fixture date
+          await db.updateFixtureDate(existingFixture.id, matchDate, dayTime);
+          
+          // Clear availability and selections
+          await db.clearAvailabilityForFixture(existingFixture.id);
+          await db.clearFinalSelections(existingFixture.id);
+
+          // Reinitialize availability for all players (default to false)
+          for (const player of players) {
+            await db.createAvailability(existingFixture.id, player.id, false);
+          }
+
+          fixturesUpdated++;
+          updatedFixtureIds.push(existingFixture.id);
+        } else {
+          fixturesUnchanged++;
+        }
+      } else {
+        // New fixture - create it
+        log('info', 'New fixture found', {
+          homeTeam: scraped.homeTeam,
+          awayTeam: scraped.awayTeam,
+          matchDate
+        });
+
+        const newFixture = await db.createFixture(
+          teamId,
+          matchDate,
+          dayTime,
+          scraped.homeTeam,
+          scraped.awayTeam,
+          scraped.venue
+        );
+
+        // Initialize availability for all players (default to false)
+        for (const player of players) {
+          await db.createAvailability(newFixture.id, player.id, false);
+        }
+
+        fixturesNew++;
+      }
+    }
+
+    const duration = Date.now() - startTime;
+    const message = fixturesUpdated > 0
+      ? `Sync completed: ${fixturesUpdated} updated, ${fixturesNew} new, ${fixturesUnchanged} unchanged`
+      : fixturesNew > 0
+      ? `Sync completed: ${fixturesNew} new fixtures added, ${fixturesUnchanged} unchanged`
+      : 'All fixtures are up to date';
+
+    log('info', 'Fixture sync completed', {
+      teamId,
+      fixturesUpdated,
+      fixturesNew,
+      fixturesUnchanged,
+      durationMs: duration
+    });
+
+    return c.json<SyncResponse>({
+      success: true,
+      fixtures_updated: fixturesUpdated,
+      fixtures_unchanged: fixturesUnchanged,
+      fixtures_new: fixturesNew,
+      updated_fixture_ids: updatedFixtureIds,
+      message
+    });
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    log('error', 'Fixture sync failed', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      durationMs: duration
+    });
+    return c.json({
+      error: error instanceof Error ? error.message : 'Failed to sync fixtures'
     }, 500);
   }
 });

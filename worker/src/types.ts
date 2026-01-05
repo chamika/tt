@@ -87,6 +87,15 @@ export interface PlayerSummaryResponse {
   summary: PlayerSummary[];
 }
 
+export interface SyncResponse {
+  success: boolean;
+  fixtures_updated: number;
+  fixtures_unchanged: number;
+  fixtures_new: number;
+  updated_fixture_ids: string[];
+  message: string;
+}
+
 // ELTTL scraper types
 export interface ScrapedFixture {
   date: string;

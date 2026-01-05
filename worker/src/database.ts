@@ -96,6 +96,31 @@ export class DatabaseService {
     return result;
   }
 
+  async getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string): Promise<Fixture | null> {
+    const result = await this.db
+      .prepare('SELECT * FROM fixtures WHERE team_id = ? AND home_team = ? AND away_team = ?')
+      .bind(teamId, homeTeam, awayTeam)
+      .first<Fixture>();
+    
+    return result;
+  }
+
+  async updateFixtureDate(fixtureId: string, matchDate: string, dayTime: string): Promise<void> {
+    const isPast = isPastDate(matchDate) ? 1 : 0;
+
+    await this.db
+      .prepare('UPDATE fixtures SET match_date = ?, day_time = ?, is_past = ? WHERE id = ?')
+      .bind(matchDate, dayTime, isPast, fixtureId)
+      .run();
+  }
+
+  async clearAvailabilityForFixture(fixtureId: string): Promise<void> {
+    await this.db
+      .prepare('DELETE FROM availability WHERE fixture_id = ?')
+      .bind(fixtureId)
+      .run();
+  }
+
   // Players
   async createPlayer(teamId: string, name: string): Promise<Player> {
     const id = generateUUID();
