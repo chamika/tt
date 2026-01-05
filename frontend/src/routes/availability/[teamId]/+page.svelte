@@ -435,8 +435,8 @@
 
 <!-- Sync Confirmation Dialog -->
 {#if showSyncConfirm}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="button" tabindex="0" onclick={() => showSyncConfirm = false} onkeydown={(e) => e.key === 'Escape' && (showSyncConfirm = false)}>
-		<div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="presentation" onclick={() => showSyncConfirm = false} onkeydown={(e) => e.key === 'Escape' && (showSyncConfirm = false)}>
+		<div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key !== 'Escape') e.stopPropagation(); }}>
 			<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
 				Confirm Fixture Sync
 			</h3>

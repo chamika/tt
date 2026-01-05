@@ -142,8 +142,13 @@ app.post('/api/availability/:teamId/sync', async (c) => {
       fixtureCount: scrapedData.fixtures.length
     });
 
-    // Get existing fixtures
+    // Get existing fixtures and load into memory for efficient lookups
     const existingFixtures = await db.getFixtures(teamId);
+    const fixtureMap = new Map<string, typeof existingFixtures[0]>();
+    for (const fixture of existingFixtures) {
+      const key = `${fixture.home_team}|${fixture.away_team}`;
+      fixtureMap.set(key, fixture);
+    }
     
     let fixturesUpdated = 0;
     let fixturesUnchanged = 0;
@@ -152,14 +157,16 @@ app.post('/api/availability/:teamId/sync', async (c) => {
 
     // Get all players for availability initialization
     const players = await db.getPlayers(teamId);
+    const playerIds = players.map(p => p.id);
 
     // Process each scraped fixture
     for (const scraped of scrapedData.fixtures) {
       const matchDate = parseMatchDate(scraped.date);
       const dayTime = `${scraped.date} ${scraped.time}`;
 
-      // Try to match with existing fixture
-      const existingFixture = await db.getFixtureByTeams(teamId, scraped.homeTeam, scraped.awayTeam);
+      // Try to match with existing fixture using in-memory lookup
+      const key = `${scraped.homeTeam}|${scraped.awayTeam}`;
+      const existingFixture = fixtureMap.get(key);
 
       if (existingFixture) {
         // Check if date has changed
@@ -172,17 +179,8 @@ app.post('/api/availability/:teamId/sync', async (c) => {
             awayTeam: scraped.awayTeam
           });
 
-          // Update fixture date
-          await db.updateFixtureDate(existingFixture.id, matchDate, dayTime);
-          
-          // Clear availability and selections
-          await db.clearAvailabilityForFixture(existingFixture.id);
-          await db.clearFinalSelections(existingFixture.id);
-
-          // Reinitialize availability for all players (default to false)
-          for (const player of players) {
-            await db.createAvailability(existingFixture.id, player.id, false);
-          }
+          // Use batch operation to update fixture, clear data, and reinitialize availability
+          await db.batchUpdateFixture(existingFixture.id, matchDate, dayTime, playerIds);
 
           fixturesUpdated++;
           updatedFixtureIds.push(existingFixture.id);
@@ -190,26 +188,22 @@ app.post('/api/availability/:teamId/sync', async (c) => {
           fixturesUnchanged++;
         }
       } else {
-        // New fixture - create it
+        // New fixture - create it with availability in a batch
         log('info', 'New fixture found', {
           homeTeam: scraped.homeTeam,
           awayTeam: scraped.awayTeam,
           matchDate
         });
 
-        const newFixture = await db.createFixture(
+        await db.batchCreateFixtureWithAvailability(
           teamId,
           matchDate,
           dayTime,
           scraped.homeTeam,
           scraped.awayTeam,
-          scraped.venue
+          scraped.venue,
+          playerIds
         );
-
-        // Initialize availability for all players (default to false)
-        for (const player of players) {
-          await db.createAvailability(newFixture.id, player.id, false);
-        }
 
         fixturesNew++;
       }

@@ -232,6 +232,89 @@ export class DatabaseService {
       .run();
   }
 
+  // Batch operations for sync
+  async batchUpdateFixture(
+    fixtureId: string,
+    matchDate: string,
+    dayTime: string,
+    playerIds: string[]
+  ): Promise<void> {
+    const isPast = isPastDate(matchDate) ? 1 : 0;
+    const timestamp = now();
+
+    // Build batch of statements
+    const statements = [
+      // Update fixture date
+      this.db.prepare('UPDATE fixtures SET match_date = ?, day_time = ?, is_past = ? WHERE id = ?')
+        .bind(matchDate, dayTime, isPast, fixtureId),
+      // Clear availability
+      this.db.prepare('DELETE FROM availability WHERE fixture_id = ?')
+        .bind(fixtureId),
+      // Clear final selections
+      this.db.prepare('DELETE FROM final_selections WHERE fixture_id = ?')
+        .bind(fixtureId),
+    ];
+
+    // Add availability inserts for each player
+    for (const playerId of playerIds) {
+      const availId = generateUUID();
+      statements.push(
+        this.db.prepare('INSERT INTO availability (id, fixture_id, player_id, is_available, updated_at) VALUES (?, ?, ?, ?, ?)')
+          .bind(availId, fixtureId, playerId, 0, timestamp)
+      );
+    }
+
+    // Execute all statements in a batch
+    await this.db.batch(statements);
+  }
+
+  async batchCreateFixtureWithAvailability(
+    teamId: string,
+    matchDate: string,
+    dayTime: string,
+    homeTeam: string,
+    awayTeam: string,
+    venue: string | undefined,
+    playerIds: string[]
+  ): Promise<Fixture> {
+    const fixtureId = generateUUID();
+    const timestamp = now();
+    const isPast = isPastDate(matchDate) ? 1 : 0;
+
+    // Build batch of statements
+    const statements = [
+      // Create fixture
+      this.db.prepare(`
+        INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, is_past, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(fixtureId, teamId, matchDate, dayTime, homeTeam, awayTeam, venue || null, isPast, timestamp),
+    ];
+
+    // Add availability inserts for each player
+    for (const playerId of playerIds) {
+      const availId = generateUUID();
+      statements.push(
+        this.db.prepare('INSERT INTO availability (id, fixture_id, player_id, is_available, updated_at) VALUES (?, ?, ?, ?, ?)')
+          .bind(availId, fixtureId, playerId, 0, timestamp)
+      );
+    }
+
+    // Execute all statements in a batch
+    await this.db.batch(statements);
+
+    return {
+      id: fixtureId,
+      team_id: teamId,
+      match_date: matchDate,
+      day_time: dayTime,
+      home_team: homeTeam,
+      away_team: awayTeam,
+      venue: venue || null,
+      is_past: isPast,
+      created_at: timestamp
+    };
+  }
+
   async getFinalSelections(teamId: string): Promise<FinalSelection[]> {
     const result = await this.db
       .prepare(`
