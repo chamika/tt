@@ -67,7 +67,9 @@ describe('POST /api/availability/:teamId/sync', () => {
       clearAvailabilityForFixture: vi.fn(),
       clearFinalSelections: vi.fn(),
       createAvailability: vi.fn(),
-      createFixture: vi.fn()
+      createFixture: vi.fn(),
+      batchUpdateFixture: vi.fn(),
+      batchCreateFixtureWithAvailability: vi.fn()
     };
 
     // Mock DatabaseService constructor
@@ -181,25 +183,20 @@ describe('POST /api/availability/:teamId/sync', () => {
       message: 'Sync completed: 1 updated, 0 new, 1 unchanged'
     });
 
-    // Verify update was made for the changed fixture
-    expect(mockDbInstance.updateFixtureDate).toHaveBeenCalledTimes(1);
-    expect(mockDbInstance.updateFixtureDate).toHaveBeenCalledWith(
+    // Verify batch update was made for the changed fixture
+    expect(mockDbInstance.batchUpdateFixture).toHaveBeenCalledTimes(1);
+    expect(mockDbInstance.batchUpdateFixture).toHaveBeenCalledWith(
       'fixture-1',
       '2026-01-16',
-      'Jan 16 Thu 19:00'
+      'Jan 16 Thu 19:00',
+      ['player-1', 'player-2', 'player-3']
     );
 
-    // Verify availability was cleared and reinitialized
-    expect(mockDbInstance.clearAvailabilityForFixture).toHaveBeenCalledTimes(1);
-    expect(mockDbInstance.clearAvailabilityForFixture).toHaveBeenCalledWith('fixture-1');
-    expect(mockDbInstance.clearFinalSelections).toHaveBeenCalledTimes(1);
-    expect(mockDbInstance.clearFinalSelections).toHaveBeenCalledWith('fixture-1');
-
-    // Verify availability was created for all players (3 players)
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledTimes(3);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-1', 'player-1', false);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-1', 'player-2', false);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-1', 'player-3', false);
+    // Verify individual methods were not called (we use batch now)
+    expect(mockDbInstance.updateFixtureDate).not.toHaveBeenCalled();
+    expect(mockDbInstance.clearAvailabilityForFixture).not.toHaveBeenCalled();
+    expect(mockDbInstance.clearFinalSelections).not.toHaveBeenCalled();
+    expect(mockDbInstance.createAvailability).not.toHaveBeenCalled();
   });
 
   it('should update availability when there are 2 fixture date changes', async () => {
@@ -249,25 +246,26 @@ describe('POST /api/availability/:teamId/sync', () => {
       message: 'Sync completed: 2 updated, 0 new, 0 unchanged'
     });
 
-    // Verify updates were made for both fixtures
-    expect(mockDbInstance.updateFixtureDate).toHaveBeenCalledTimes(2);
-    expect(mockDbInstance.updateFixtureDate).toHaveBeenCalledWith(
+    // Verify batch updates were made for both fixtures
+    expect(mockDbInstance.batchUpdateFixture).toHaveBeenCalledTimes(2);
+    expect(mockDbInstance.batchUpdateFixture).toHaveBeenCalledWith(
       'fixture-1',
       '2026-01-16',
-      'Jan 16 Thu 19:00'
+      'Jan 16 Thu 19:00',
+      ['player-1', 'player-2', 'player-3']
     );
-    expect(mockDbInstance.updateFixtureDate).toHaveBeenCalledWith(
+    expect(mockDbInstance.batchUpdateFixture).toHaveBeenCalledWith(
       'fixture-2',
       '2026-01-23',
-      'Jan 23 Thu 18:45'
+      'Jan 23 Thu 18:45',
+      ['player-1', 'player-2', 'player-3']
     );
 
-    // Verify availability was cleared for both fixtures
-    expect(mockDbInstance.clearAvailabilityForFixture).toHaveBeenCalledTimes(2);
-    expect(mockDbInstance.clearFinalSelections).toHaveBeenCalledTimes(2);
-
-    // Verify availability was created for all players for both fixtures (3 players × 2 fixtures = 6 calls)
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledTimes(6);
+    // Verify individual methods were not called (we use batch now)
+    expect(mockDbInstance.updateFixtureDate).not.toHaveBeenCalled();
+    expect(mockDbInstance.clearAvailabilityForFixture).not.toHaveBeenCalled();
+    expect(mockDbInstance.clearFinalSelections).not.toHaveBeenCalled();
+    expect(mockDbInstance.createAvailability).not.toHaveBeenCalled();
   });
 
   it('should return error when the ELTTL URL call fails', async () => {
@@ -375,21 +373,20 @@ describe('POST /api/availability/:teamId/sync', () => {
       message: 'Sync completed: 1 new fixtures added, 1 unchanged'
     });
 
-    // Verify new fixture was created
-    expect(mockDbInstance.createFixture).toHaveBeenCalledTimes(1);
-    expect(mockDbInstance.createFixture).toHaveBeenCalledWith(
+    // Verify batch create was called for the new fixture
+    expect(mockDbInstance.batchCreateFixtureWithAvailability).toHaveBeenCalledTimes(1);
+    expect(mockDbInstance.batchCreateFixtureWithAvailability).toHaveBeenCalledWith(
       mockTeamId,
       '2026-01-29',
       'Jan 29 Wed 18:45',
       'Test Team',
       'Opposition C',
-      'VENUE1'
+      'VENUE1',
+      ['player-1', 'player-2', 'player-3']
     );
 
-    // Verify availability was initialized for all players for the new fixture
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledTimes(3);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-3', 'player-1', false);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-3', 'player-2', false);
-    expect(mockDbInstance.createAvailability).toHaveBeenCalledWith('fixture-3', 'player-3', false);
+    // Verify individual methods were not called (we use batch now)
+    expect(mockDbInstance.createFixture).not.toHaveBeenCalled();
+    expect(mockDbInstance.createAvailability).not.toHaveBeenCalled();
   });
 });

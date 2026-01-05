@@ -262,13 +262,14 @@ test.describe('Player Summary Statistics', () => {
 	test('should show confirmation dialog when sync button clicked', async ({ page }) => {
 		// Navigate to Management tab
 		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
-		await page.locator('button:has-text("Management")').click();
-		await page.waitForTimeout(500);
+		const managementTab = page.locator('button:has-text("Management")');
+		await managementTab.click();
+		await managementTab.waitFor({ state: 'visible' });
 		
 		// Click sync button
 		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.waitFor({ state: 'visible' });
 		await syncButton.click();
-		await page.waitForTimeout(300);
 		
 		// Check for confirmation dialog
 		const dialogHeading = page.locator('h3:has-text("Confirm Fixture Sync")');
@@ -282,7 +283,6 @@ test.describe('Player Summary Statistics', () => {
 		
 		// Cancel the dialog
 		await cancelButton.click();
-		await page.waitForTimeout(300);
 		
 		// Dialog should be hidden
 		await expect(dialogHeading).not.toBeVisible();
@@ -291,25 +291,28 @@ test.describe('Player Summary Statistics', () => {
 	test('should show loading state during sync', async ({ page }) => {
 		// Navigate to Management tab
 		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
-		await page.locator('button:has-text("Management")').click();
-		await page.waitForTimeout(500);
+		const managementTab = page.locator('button:has-text("Management")');
+		await managementTab.click();
+		await managementTab.waitFor({ state: 'visible' });
 		
 		// Click sync button
 		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.waitFor({ state: 'visible' });
 		await syncButton.click();
-		await page.waitForTimeout(300);
 		
 		// Click Sync Now
 		const syncNowButton = page.locator('button:has-text("Sync Now")');
+		await syncNowButton.waitFor({ state: 'visible' });
 		await syncNowButton.click();
 		
-		// Should show loading state (briefly)
-		// Note: This might be too fast to catch in real scenarios
-		const syncingButton = page.locator('button:has-text("Syncing...")');
-		// We don't assert visibility because sync might complete too quickly
-		
-		// Wait for sync to complete - look for success notification or completion
-		await page.waitForTimeout(2000);
+		// Wait for sync operation to complete by checking button state
+		// The button should either show "Syncing..." or go back to normal
+		await page.waitForFunction(() => {
+			const btn = document.querySelector('button:has-text("Sync Fixtures")');
+			return btn && !btn.textContent?.includes('Syncing');
+		}, { timeout: 5000 }).catch(() => {
+			// Sync might complete too quickly, which is fine
+		});
 		
 		// After sync, button should be back to normal state
 		await expect(syncButton).toBeVisible();
