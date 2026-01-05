@@ -305,11 +305,12 @@ test.describe('Player Summary Statistics', () => {
 		await syncNowButton.waitFor({ state: 'visible' });
 		await syncNowButton.click();
 		
-		// Wait for sync operation to complete by checking button state
-		// The button should either show "Syncing..." or go back to normal
+		// Wait for sync operation to complete by waiting for button to not be disabled
+		// The button might briefly show "Syncing..." before completing
 		await page.waitForFunction(() => {
-			const btn = document.querySelector('button:has-text("Sync Fixtures")');
-			return btn && !btn.textContent?.includes('Syncing');
+			const buttons = Array.from(document.querySelectorAll('button'));
+			const syncBtn = buttons.find(btn => btn.textContent?.includes('Sync Fixtures'));
+			return syncBtn && !syncBtn.textContent?.includes('Syncing');
 		}, { timeout: 5000 }).catch(() => {
 			// Sync might complete too quickly, which is fine
 		});
