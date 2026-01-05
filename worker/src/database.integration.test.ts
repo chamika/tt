@@ -385,4 +385,152 @@ describe('DatabaseService Integration Tests', () => {
 			expect(selection2.fixture_id).toBe(fixture.id);
 		});
 	});
+
+	describe('Fixture Sync Operations', () => {
+		it('should get fixture by teams when match exists', async () => {
+			const mockFixture = {
+				id: 'fixture-123',
+				team_id: 'team-456',
+				match_date: '2026-02-15',
+				day_time: 'Feb 15 19:00',
+				home_team: 'Home United',
+				away_team: 'Away City',
+				venue: 'Test Venue',
+				is_past: 0,
+				created_at: Date.now()
+			};
+
+			mockD1.prepare = () => ({
+				bind: () => ({
+					first: async () => mockFixture
+				})
+			});
+
+			const foundFixture = await db.getFixtureByTeams('team-456', 'Home United', 'Away City');
+
+			expect(foundFixture).toBeDefined();
+			expect(foundFixture?.id).toBe('fixture-123');
+			expect(foundFixture?.home_team).toBe('Home United');
+			expect(foundFixture?.away_team).toBe('Away City');
+		});
+
+		it('should return null when fixture not found by teams', async () => {
+			mockD1.prepare = () => ({
+				bind: () => ({
+					first: async () => null
+				})
+			});
+
+			const foundFixture = await db.getFixtureByTeams('team-456', 'Non Existent', 'Teams');
+
+			expect(foundFixture).toBeNull();
+		});
+
+		it('should update fixture date', async () => {
+			const fixtureId = 'fixture-123';
+			let updateCalled = false;
+
+			mockD1.prepare = () => ({
+				bind: (...params: any[]) => {
+					// Verify update was called with correct parameters
+					if (params.length === 4) {
+						updateCalled = true;
+						expect(params[0]).toBe('2026-04-20'); // match_date
+						expect(params[1]).toBe('Apr 20 19:00'); // day_time
+						expect(params[2]).toBe(0); // is_past (future date)
+						expect(params[3]).toBe(fixtureId);
+					}
+					return {
+						run: async () => ({ success: true })
+					};
+				}
+			});
+
+			await db.updateFixtureDate(fixtureId, '2026-04-20', 'Apr 20 19:00');
+
+			expect(updateCalled).toBe(true);
+		});
+
+		it('should mark fixture as past when updating to past date', async () => {
+			const fixtureId = 'fixture-123';
+			let isPastValue: number | null = null;
+
+			mockD1.prepare = () => ({
+				bind: (...params: any[]) => {
+					if (params.length === 4) {
+						isPastValue = params[2]; // is_past parameter
+					}
+					return {
+						run: async () => ({ success: true })
+					};
+				}
+			});
+
+			await db.updateFixtureDate(fixtureId, '2025-01-01', 'Jan 1 20:00');
+
+			expect(isPastValue).toBe(1);
+		});
+
+		it('should clear availability for fixture', async () => {
+			const fixtureId = 'fixture-123';
+			let deleteCalled = false;
+
+			mockD1.prepare = () => ({
+				bind: (param: string) => {
+					if (param === fixtureId) {
+						deleteCalled = true;
+					}
+					return {
+						run: async () => ({ success: true })
+					};
+				}
+			});
+
+			await db.clearAvailabilityForFixture(fixtureId);
+
+			expect(deleteCalled).toBe(true);
+		});
+
+		it('should support sync workflow operations', async () => {
+			// This test verifies that all sync-related methods can be called in sequence
+			const fixtureId = 'fixture-123';
+			const teamId = 'team-456';
+
+			// Mock for getFixtureByTeams
+			const mockFixture = {
+				id: fixtureId,
+				team_id: teamId,
+				match_date: '2026-04-15',
+				day_time: 'Apr 15 19:00',
+				home_team: 'Home Team',
+				away_team: 'Away Team',
+				venue: null,
+				is_past: 0,
+				created_at: Date.now()
+			};
+
+			mockD1.prepare = () => ({
+				bind: () => ({
+					first: async () => mockFixture,
+					run: async () => ({ success: true })
+				})
+			});
+
+			// Find fixture
+			const fixture = await db.getFixtureByTeams(teamId, 'Home Team', 'Away Team');
+			expect(fixture).toBeDefined();
+
+			// Update fixture date
+			await db.updateFixtureDate(fixtureId, '2026-04-20', 'Apr 20 19:00');
+
+			// Clear availability
+			await db.clearAvailabilityForFixture(fixtureId);
+
+			// Clear selections
+			await db.clearFinalSelections(fixtureId);
+
+			// All operations should complete without errors
+			expect(true).toBe(true);
+		});
+	});
 });

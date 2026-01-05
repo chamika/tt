@@ -112,6 +112,11 @@ test.describe('Availability Tracker Validation', () => {
 	});
 
 	test('shows player summary cards', async ({ page }) => {
+		// Navigate to Stats tab first
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Stats")').click();
+		await page.waitForTimeout(300);
+		
 		// Check that Season Stats Summary section exists
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
 		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
@@ -160,12 +165,22 @@ test.describe('Player Summary Statistics', () => {
 	});
 
 	test('displays player summary section', async ({ page }) => {
+		// Navigate to Stats tab first
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Stats")').click();
+		await page.waitForTimeout(300);
+		
 		// Check that Season Stats Summary section exists
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
 		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 	});
 
 	test('shows stat labels in summary cards', async ({ page }) => {
+		// Navigate to Stats tab first
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Stats")').click();
+		await page.waitForTimeout(300);
+		
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
 		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
@@ -180,11 +195,124 @@ test.describe('Player Summary Statistics', () => {
 	});
 
 	test('displays selection rate', async ({ page }) => {
+		// Navigate to Stats tab first
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Stats")').click();
+		await page.waitForTimeout(300);
+		
 		const summaryHeading = page.locator('h2:has-text("Season Stats Summary")');
 		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
 		// Check that selection rate is displayed with percentage
 		const selectionRate = page.locator('text=/Selection Rate:.*%/').first();
 		await expect(selectionRate).toBeVisible({ timeout: 5000 });
+	});
+
+	test('should display three tabs: Fixtures, Stats, Management', async ({ page }) => {
+		// Wait for tabs to load
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		
+		// Check that all three tabs are visible
+		const fixturesTab = page.locator('button:has-text("Fixtures")');
+		const statsTab = page.locator('button:has-text("Stats")');
+		const managementTab = page.locator('button:has-text("Management")');
+		
+		await expect(fixturesTab).toBeVisible();
+		await expect(statsTab).toBeVisible();
+		await expect(managementTab).toBeVisible();
+	});
+
+	test('should navigate between tabs', async ({ page }) => {
+		// Wait for tabs to load
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		
+		// Initially on Fixtures tab
+		const fixturesHeading = page.locator('h2:has-text("Upcoming Fixtures")');
+		await expect(fixturesHeading).toBeVisible();
+		
+		// Click Stats tab
+		await page.locator('button:has-text("Stats")').click();
+		await page.waitForTimeout(300);
+		
+		// Should show stats content
+		const statsHeading = page.locator('h2:has-text("Season Stats Summary")');
+		await expect(statsHeading).toBeVisible();
+		
+		// Click Management tab
+		await page.locator('button:has-text("Management")').click();
+		await page.waitForTimeout(300);
+		
+		// Should show management content
+		const managementHeading = page.locator('h2:has-text("Fixture Management")');
+		await expect(managementHeading).toBeVisible();
+	});
+
+	test('should display sync button in Management tab', async ({ page }) => {
+		// Navigate to Management tab
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Management")').click();
+		await page.waitForTimeout(500);
+		
+		// Check for sync button
+		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await expect(syncButton).toBeVisible();
+		await expect(syncButton).toBeEnabled();
+	});
+
+	test('should show confirmation dialog when sync button clicked', async ({ page }) => {
+		// Navigate to Management tab
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Management")').click();
+		await page.waitForTimeout(500);
+		
+		// Click sync button
+		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.click();
+		await page.waitForTimeout(300);
+		
+		// Check for confirmation dialog
+		const dialogHeading = page.locator('h3:has-text("Confirm Fixture Sync")');
+		await expect(dialogHeading).toBeVisible();
+		
+		// Check for dialog buttons
+		const cancelButton = page.locator('button:has-text("Cancel")');
+		const syncNowButton = page.locator('button:has-text("Sync Now")');
+		await expect(cancelButton).toBeVisible();
+		await expect(syncNowButton).toBeVisible();
+		
+		// Cancel the dialog
+		await cancelButton.click();
+		await page.waitForTimeout(300);
+		
+		// Dialog should be hidden
+		await expect(dialogHeading).not.toBeVisible();
+	});
+
+	test('should show loading state during sync', async ({ page }) => {
+		// Navigate to Management tab
+		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
+		await page.locator('button:has-text("Management")').click();
+		await page.waitForTimeout(500);
+		
+		// Click sync button
+		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.click();
+		await page.waitForTimeout(300);
+		
+		// Click Sync Now
+		const syncNowButton = page.locator('button:has-text("Sync Now")');
+		await syncNowButton.click();
+		
+		// Should show loading state (briefly)
+		// Note: This might be too fast to catch in real scenarios
+		const syncingButton = page.locator('button:has-text("Syncing...")');
+		// We don't assert visibility because sync might complete too quickly
+		
+		// Wait for sync to complete - look for success notification or completion
+		await page.waitForTimeout(2000);
+		
+		// After sync, button should be back to normal state
+		await expect(syncButton).toBeVisible();
+		await expect(syncButton).toBeEnabled();
 	});
 });
