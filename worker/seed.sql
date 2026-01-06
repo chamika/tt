@@ -28,12 +28,13 @@ INSERT INTO players (id, team_id, name, created_at) VALUES
   ('player-6', '00000000-0000-0000-0000-000000000000', 'Frank Foster', strftime('%s', 'now'));
 
 -- Insert fixtures (3 future, 2 past)
-INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, is_past, created_at) VALUES
-  ('fixture-future-1', '00000000-0000-0000-0000-000000000000', date('now', '+7 days'), '19:30', 'Test Team E2E', 'Future Team A', 'Home Venue', 0, strftime('%s', 'now')),
-  ('fixture-future-2', '00000000-0000-0000-0000-000000000000', date('now', '+14 days'), '20:00', 'Future Team B', 'Test Team E2E', 'Away Venue', 0, strftime('%s', 'now')),
-  ('fixture-future-3', '00000000-0000-0000-0000-000000000000', date('now', '+21 days'), '19:45', 'Test Team E2E', 'Future Team C', 'Home Venue', 0, strftime('%s', 'now')),
-  ('fixture-past-1', '00000000-0000-0000-0000-000000000000', date('now', '-7 days'), '19:30', 'Past Team A', 'Test Team E2E', 'Away Venue', 1, strftime('%s', 'now')),
-  ('fixture-past-2', '00000000-0000-0000-0000-000000000000', date('now', '-14 days'), '20:00', 'Test Team E2E', 'Past Team B', 'Home Venue', 1, strftime('%s', 'now'));
+-- Note: is_past is computed dynamically by the API based on match_date
+INSERT INTO fixtures (id, team_id, match_date, day_time, home_team, away_team, venue, created_at) VALUES
+  ('fixture-future-1', '00000000-0000-0000-0000-000000000000', date('now', '+7 days'), '19:30', 'Test Team E2E', 'Future Team A', 'Home Venue', strftime('%s', 'now')),
+  ('fixture-future-2', '00000000-0000-0000-0000-000000000000', date('now', '+14 days'), '20:00', 'Future Team B', 'Test Team E2E', 'Away Venue', strftime('%s', 'now')),
+  ('fixture-future-3', '00000000-0000-0000-0000-000000000000', date('now', '+21 days'), '19:45', 'Test Team E2E', 'Future Team C', 'Home Venue', strftime('%s', 'now')),
+  ('fixture-past-1', '00000000-0000-0000-0000-000000000000', date('now', '-7 days'), '19:30', 'Past Team A', 'Test Team E2E', 'Away Venue', strftime('%s', 'now')),
+  ('fixture-past-2', '00000000-0000-0000-0000-000000000000', date('now', '-14 days'), '20:00', 'Test Team E2E', 'Past Team B', 'Home Venue', strftime('%s', 'now'));
 
 -- Initialize availability for all fixtures (all players available)
 INSERT INTO availability (id, fixture_id, player_id, is_available, updated_at) VALUES

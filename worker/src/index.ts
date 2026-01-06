@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Env, ImportTeamRequest, ImportTeamResponse, SyncResponse } from './types';
+import type { Env, ImportTeamRequest, ImportTeamResponse, SyncResponse, Fixture } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
-import { isValidELTTLUrl, parseMatchDate } from './utils';
+import { isValidELTTLUrl, parseMatchDate, isPastDate } from './utils';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -259,12 +259,18 @@ app.get('/api/availability/:teamId', async (c) => {
     }
 
     // Get fixtures, players, availability, and final selections
-    const [fixtures, players, availability, finalSelections] = await Promise.all([
+    const [fixtureRows, players, availability, finalSelections] = await Promise.all([
       db.getFixtures(teamId),
       db.getPlayers(teamId),
       db.getAvailability(teamId),
       db.getFinalSelections(teamId)
     ]);
+
+    // Add computed is_past field to fixtures
+    const fixtures: Fixture[] = fixtureRows.map(f => ({
+      ...f,
+      is_past: isPastDate(f.match_date) ? 1 : 0
+    }));
 
     // Transform availability into a map
     const availabilityMap: Record<string, boolean> = {};
@@ -448,11 +454,17 @@ app.get('/api/availability/:teamId/summary', async (c) => {
     }
 
     // Get all data
-    const [fixtures, players, finalSelections] = await Promise.all([
+    const [fixtureRows, players, finalSelections] = await Promise.all([
       db.getFixtures(teamId),
       db.getPlayers(teamId),
       db.getFinalSelections(teamId)
     ]);
+
+    // Add computed is_past field to fixtures
+    const fixtures: Fixture[] = fixtureRows.map(f => ({
+      ...f,
+      is_past: isPastDate(f.match_date) ? 1 : 0
+    }));
 
     // Calculate summary for each player
     const summary = players.map(player => {

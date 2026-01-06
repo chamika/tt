@@ -99,28 +99,24 @@ describe('DatabaseService Integration Tests', () => {
 			expect(fixture.venue).toBe('Test Venue');
 		});
 
-		it('should mark past fixtures correctly', async () => {
-			const pastFixture = await db.createFixture(
-				'team-123',
-				'2020-01-01',
-				'Jan 1 Wed 19:00',
-				'Home Team',
-				'Away Team'
-			);
-
-			expect(pastFixture.is_past).toBe(1);
-		});
-
-		it('should mark future fixtures correctly', async () => {
-			const futureFixture = await db.createFixture(
+		it('should create a fixture with all required fields', async () => {
+			const fixture = await db.createFixture(
 				'team-123',
 				'2030-12-31',
 				'Dec 31 Wed 19:00',
 				'Home Team',
-				'Away Team'
+				'Away Team',
+				'Test Venue'
 			);
 
-			expect(futureFixture.is_past).toBe(0);
+			expect(fixture.id).toBeDefined();
+			expect(fixture.team_id).toBe('team-123');
+			expect(fixture.match_date).toBe('2030-12-31');
+			expect(fixture.day_time).toBe('Dec 31 Wed 19:00');
+			expect(fixture.home_team).toBe('Home Team');
+			expect(fixture.away_team).toBe('Away Team');
+			expect(fixture.venue).toBe('Test Venue');
+			expect(fixture.created_at).toBeDefined();
 		});
 
 		it('should get fixtures for a team', async () => {
@@ -133,7 +129,6 @@ describe('DatabaseService Integration Tests', () => {
 					home_team: 'Home Team 1',
 					away_team: 'Away Team 1',
 					venue: null,
-					is_past: 0,
 					created_at: Date.now()
 				},
 				{
@@ -144,7 +139,6 @@ describe('DatabaseService Integration Tests', () => {
 					home_team: 'Home Team 2',
 					away_team: 'Away Team 2',
 					venue: 'Test Venue',
-					is_past: 0,
 					created_at: Date.now()
 				}
 			];
@@ -370,7 +364,7 @@ describe('DatabaseService Integration Tests', () => {
 			);
 
 			expect(fixture.id).toBeDefined();
-			expect(fixture.is_past).toBe(0);
+			expect(fixture.match_date).toBe('2026-01-15');
 
 			// Create availability
 			await db.createAvailability(fixture.id, player1.id, true);
@@ -396,7 +390,6 @@ describe('DatabaseService Integration Tests', () => {
 				home_team: 'Home United',
 				away_team: 'Away City',
 				venue: 'Test Venue',
-				is_past: 0,
 				created_at: Date.now()
 			};
 
@@ -433,12 +426,11 @@ describe('DatabaseService Integration Tests', () => {
 			mockD1.prepare = () => ({
 				bind: (...params: any[]) => {
 					// Verify update was called with correct parameters
-					if (params.length === 4) {
+					if (params.length === 3) {
 						updateCalled = true;
 						expect(params[0]).toBe('2026-04-20'); // match_date
 						expect(params[1]).toBe('Apr 20 19:00'); // day_time
-						expect(params[2]).toBe(0); // is_past (future date)
-						expect(params[3]).toBe(fixtureId);
+						expect(params[2]).toBe(fixtureId);
 					}
 					return {
 						run: async () => ({ success: true })
@@ -449,26 +441,6 @@ describe('DatabaseService Integration Tests', () => {
 			await db.updateFixtureDate(fixtureId, '2026-04-20', 'Apr 20 19:00');
 
 			expect(updateCalled).toBe(true);
-		});
-
-		it('should mark fixture as past when updating to past date', async () => {
-			const fixtureId = 'fixture-123';
-			let isPastValue: number | null = null;
-
-			mockD1.prepare = () => ({
-				bind: (...params: any[]) => {
-					if (params.length === 4) {
-						isPastValue = params[2]; // is_past parameter
-					}
-					return {
-						run: async () => ({ success: true })
-					};
-				}
-			});
-
-			await db.updateFixtureDate(fixtureId, '2025-01-01', 'Jan 1 20:00');
-
-			expect(isPastValue).toBe(1);
 		});
 
 		it('should clear availability for fixture', async () => {
@@ -505,7 +477,6 @@ describe('DatabaseService Integration Tests', () => {
 				home_team: 'Home Team',
 				away_team: 'Away Team',
 				venue: null,
-				is_past: 0,
 				created_at: Date.now()
 			};
 
