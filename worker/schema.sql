@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS fixtures (
   home_team TEXT NOT NULL,
   away_team TEXT NOT NULL,
   venue TEXT,
-  is_past INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL,
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
