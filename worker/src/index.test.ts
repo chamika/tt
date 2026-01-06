@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import app from './index';
 import * as scraper from './scraper';
 import { DatabaseService } from './database';
-import type { Team, Fixture, FixtureRow, Player } from './types';
+import type { Team, Fixture, Player } from './types';
 
 // Mock the scraper module
 vi.mock('./scraper');
@@ -18,17 +18,16 @@ describe('POST /api/availability/:teamId/sync', () => {
     id: mockTeamId,
     name: 'Test Team',
     elttl_url: mockElttlUrl,
-    created_at: 1704067200000,
-    updated_at: 1704067200000
+    created_at: '2024-01-01T00:00:00.000Z'
   };
 
   const mockPlayers: Player[] = [
-    { id: 'player-1', team_id: mockTeamId, name: 'Player A', created_at: 1704067200000 },
-    { id: 'player-2', team_id: mockTeamId, name: 'Player B', created_at: 1704067200000 },
-    { id: 'player-3', team_id: mockTeamId, name: 'Player C', created_at: 1704067200000 }
+    { id: 'player-1', team_id: mockTeamId, name: 'Player A', created_at: '2024-01-01T00:00:00.000Z' },
+    { id: 'player-2', team_id: mockTeamId, name: 'Player B', created_at: '2024-01-01T00:00:00.000Z' },
+    { id: 'player-3', team_id: mockTeamId, name: 'Player C', created_at: '2024-01-01T00:00:00.000Z' }
   ];
 
-  const mockExistingFixtures: FixtureRow[] = [
+  const mockExistingFixtures: Fixture[] = [
     {
       id: 'fixture-1',
       team_id: mockTeamId,
@@ -36,8 +35,9 @@ describe('POST /api/availability/:teamId/sync', () => {
       day_time: 'Jan 15 Wed 18:45',
       home_team: 'Test Team',
       away_team: 'Opposition A',
-      venue: null,
-      created_at: 1704067200000
+      venue: undefined,
+      is_past: 0,
+      created_at: '2024-01-01T00:00:00.000Z'
     },
     {
       id: 'fixture-2',
@@ -46,8 +46,9 @@ describe('POST /api/availability/:teamId/sync', () => {
       day_time: 'Jan 22 Wed 18:45',
       home_team: 'Opposition B',
       away_team: 'Test Team',
-      venue: null,
-      created_at: 1704067200000
+      venue: undefined,
+      is_past: 0,
+      created_at: '2024-01-01T00:00:00.000Z'
     }
   ];
 
@@ -341,7 +342,7 @@ describe('POST /api/availability/:teamId/sync', () => {
       .mockResolvedValueOnce(mockExistingFixtures[0])
       .mockResolvedValueOnce(null);
 
-    const newFixture: FixtureRow = {
+    const newFixture: Fixture = {
       id: 'fixture-3',
       team_id: mockTeamId,
       match_date: '2026-01-29',
@@ -349,7 +350,8 @@ describe('POST /api/availability/:teamId/sync', () => {
       home_team: 'Test Team',
       away_team: 'Opposition C',
       venue: 'VENUE1',
-      created_at: 1704067200000
+      is_past: 0,
+      created_at: '2024-01-01T00:00:00.000Z'
     };
 
     mockDbInstance.createFixture.mockResolvedValue(newFixture);

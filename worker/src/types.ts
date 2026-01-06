@@ -4,7 +4,7 @@ export interface Env {
   DB: D1Database;
 }
 
-// Database models (row types - what's stored in D1)
+// Database models
 export interface Team {
   id: string;
   name: string;
@@ -13,7 +13,7 @@ export interface Team {
   updated_at: number;
 }
 
-export interface FixtureRow {
+export interface Fixture {
   id: string;
   team_id: string;
   match_date: string;
@@ -21,6 +21,7 @@ export interface FixtureRow {
   home_team: string;
   away_team: string;
   venue: string | null;
+  is_past: number; // SQLite uses INTEGER for boolean (0 or 1)
   created_at: number;
 }
 
@@ -44,11 +45,6 @@ export interface FinalSelection {
   fixture_id: string;
   player_id: string;
   selected_at: number;
-}
-
-// API response types (what the API returns to clients)
-export interface Fixture extends FixtureRow {
-  is_past: number; // Computed field: 0 or 1
 }
 
 // API request/response types
