@@ -116,6 +116,55 @@ const mockNoFixturesHTML = `
 </html>
 `;
 
+// Mirrors the markup ELTTL uses on a real team page: the squad and the players
+// who have left share the same row markup, separated only by a heading row.
+// Note the unclosed <tr> on the heading row - that is how ELTTL emits it.
+const mockHTMLWithFormerMembers = `
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>Penicuik III (Pen. 3)</h1>
+
+  <div class="field">
+    <label for="teamCaptainList">Team Secretary</label>
+    <span id="teamCaptainList">
+      <a href="https://elttl.interactive.co.uk/people/view/999">Non Playing Secretary</a>
+    </span>
+  </div>
+
+  <h2>Team Members</h2>
+  <table id="teamMembers">
+    <tbody>
+      <tr id="member1174" class="TeamMembers">
+        <td id="memberName1174" class="Name"><span><a href="https://elttl.interactive.co.uk/people/view/1056">Active One</a></span></td>
+      </tr>
+      <tr id="member829" class="TeamMembers">
+        <td id="memberName829" class="Name"><span><a href="https://elttl.interactive.co.uk/people/view/209">Active Two</a></span></td>
+      </tr>
+      <tr><th>Former Members</th><tr>
+      <tr id="member763" class="TeamMembers">
+        <td id="memberName763" class="Name"><span><a href="https://elttl.interactive.co.uk/people/view/143">Former One</a></span></td>
+      </tr>
+      <tr id="member842" class="TeamMembers">
+        <td id="memberName842" class="Name"><span><a href="https://elttl.interactive.co.uk/people/view/777">Former Two</a></span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Fixture List</h2>
+  <table id="fixtureTable">
+    <tr>
+      <td>Sep 16</td>
+      <td>Tue 18:45</td>
+      <td>Opposition Team A</td>
+      <td>1 - 9</td>
+      <td>Penicuik III</td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
 describe('scrapeELTTLTeam', () => {
   beforeEach(() => {
     // Reset all mocks before each test
@@ -299,6 +348,68 @@ describe('scrapeELTTLTeam', () => {
     
     expect(pastFixture).toBeDefined();
     expect(futureFixture).toBeDefined();
+  });
+
+  it('should only include active members and ignore former members', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => mockHTMLWithFormerMembers
+    } as Response);
+
+    const result = await scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/871');
+
+    expect(result.players).toEqual(['Active One', 'Active Two']);
+    expect(result.players).not.toContain('Former One');
+    expect(result.players).not.toContain('Former Two');
+  });
+
+  it('should ignore people linked outside the team members table', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => mockHTMLWithFormerMembers
+    } as Response);
+
+    const result = await scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/871');
+
+    // The team secretary is a separate field, not a squad member
+    expect(result.players).not.toContain('Non Playing Secretary');
+  });
+
+  it('should throw error when every member is a former member', async () => {
+    const htmlWithOnlyFormerMembers = `
+      <!DOCTYPE html>
+      <html>
+      <body>
+        <h1>Test Team</h1>
+        <table id="teamMembers">
+          <tbody>
+            <tr><th>Former Members</th><tr>
+            <tr id="member763" class="TeamMembers">
+              <td class="Name"><a href="/people/view/143">Former One</a></td>
+            </tr>
+          </tbody>
+        </table>
+        <table>
+          <tr>
+            <td>Sep 16</td>
+            <td>Tue 18:45</td>
+            <td>Home</td>
+            <td>1-9</td>
+            <td>Away</td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => htmlWithOnlyFormerMembers
+    } as Response);
+
+    await expect(
+      scrapeELTTLTeam('https://elttl.interactive.co.uk/teams/view/871')
+    ).rejects.toThrow('No players found in HTML');
   });
 
   it('should validate date format correctly', async () => {

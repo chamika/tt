@@ -52,6 +52,7 @@ You'll need:
 **What happens next?**
 - The system fetches your team data from ELTTL
 - Team name, fixtures, and player roster are automatically imported
+- Only current team members are imported - former members are left out
 - You'll be redirected to your team's availability page
 - All players start as "not available" for all fixtures
 
