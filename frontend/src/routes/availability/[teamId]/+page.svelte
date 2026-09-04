@@ -450,7 +450,7 @@
 {/if}
 
 <!-- Notifications - Fixed position at top right -->
-<div class="fixed top-4 right-4 z-50 max-w-md w-full px-4 pointer-events-none">
+<div class="fixed top-24 right-0 sm:right-4 z-[60] max-w-md w-full px-4 pointer-events-none">
 	<div class="pointer-events-auto">
 		{#if error}
 			<div class="mb-3">
