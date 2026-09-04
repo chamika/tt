@@ -87,6 +87,7 @@ curl -X POST http://localhost:8787/api/availability/import \
 **Notes**:
 - If team already exists, returns existing teamId
 - Scrapes: team name, fixtures (date, time, teams, venue), player names
+- Only the active squad is imported - players listed under "Former Members" on the ELTTL page are ignored
 - Initializes all availability as `false` (not available)
 - Automatically determines if fixtures are in the past
 

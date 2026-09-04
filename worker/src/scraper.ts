@@ -109,25 +109,79 @@ function extractVenue(teamName: string): string | undefined {
 }
 
 /**
- * Extract players/squad from HTML
+ * Row class ELTTL puts on every entry of the "Team Members" table
+ */
+const MEMBER_ROW_CLASS = 'TeamMembers';
+
+/**
+ * Heading row that separates the current squad from players who have left.
+ * Everything after it in the document belongs to former members.
+ */
+const FORMER_MEMBERS_HEADING = /^former\s+members?$/i;
+
+/**
+ * Extract the active players/squad from HTML
+ *
+ * ELTTL lists the current squad and then, under a "Former Members" heading row,
+ * everyone who has left the team. Both groups use the same markup, so the
+ * document order of the heading is what separates them. Players listed after it
+ * are ignored so that only the active squad is imported.
  */
 function extractPlayers(root: any): string[] {
-  const players: Set<string> = new Set();
+  // Names found inside team member rows - the authoritative squad list
+  const memberNames: Set<string> = new Set();
+  // Names found elsewhere on the page (e.g. team secretary), used only as a
+  // fallback when the page has no team member rows at all
+  const otherNames: Set<string> = new Set();
+  let reachedFormerMembers = false;
 
-  // ELTTL lists players as links to /people/view/
-  const peopleLinks = root.querySelectorAll('a[href*="/people/view/"]');
-  
-  for (const link of peopleLinks) {
-    const name = link.text.trim();
-    // Filter out empty names and common non-player text
-    if (name && name.length > 0 && !name.match(/^(more|view|edit|details?)$/i)) {
-      players.add(name);
+  const visit = (node: any, inMemberRow: boolean): void => {
+    // Only elements carry the tags, classes and links we look at
+    if (reachedFormerMembers || node.nodeType !== 1) return;
+
+    if (FORMER_MEMBERS_HEADING.test(node.text.trim())) {
+      reachedFormerMembers = true;
+      return;
     }
-  }
+
+    const name = extractPlayerName(node);
+    if (name) {
+      (inMemberRow ? memberNames : otherNames).add(name);
+      return;
+    }
+
+    const isMemberRow = inMemberRow ||
+      (node.tagName === 'TR' && node.classList?.contains(MEMBER_ROW_CLASS));
+
+    for (const child of node.childNodes) {
+      visit(child, isMemberRow);
+    }
+  };
+
+  visit(root, false);
+
+  const players = memberNames.size > 0 ? memberNames : otherNames;
 
   if (players.size === 0) {
     throw new Error('No players found in HTML');
   }
 
   return Array.from(players);
+}
+
+/**
+ * Return the player name for a link to an ELTTL person, or undefined if the
+ * node is not such a link
+ */
+function extractPlayerName(node: any): string | undefined {
+  if (node.tagName !== 'A') return undefined;
+
+  const href = node.getAttribute('href') || '';
+  if (!href.includes('/people/view/')) return undefined;
+
+  const name = node.text.trim();
+  // Filter out empty names and common non-player text
+  if (!name || name.match(/^(more|view|edit|details?)$/i)) return undefined;
+
+  return name;
 }
