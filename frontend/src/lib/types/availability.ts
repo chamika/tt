@@ -62,12 +62,55 @@ export interface SetFinalSelectionRequest {
   playerIds: string[];
 }
 
+export interface SyncPlanNew {
+  match_date: string;
+  day_time: string;
+  home_team: string;
+  away_team: string;
+  venue: string | null;
+}
+
+export interface SyncPlanUpdate {
+  id: string;
+  home_team: string;
+  away_team: string;
+  old_match_date: string;
+  old_day_time: string;
+  new_match_date: string;
+  new_day_time: string;
+  // Data that applying the update would clear
+  available_count: number;
+  selected_count: number;
+}
+
+export interface SyncPlanDelete {
+  id: string;
+  match_date: string;
+  day_time: string;
+  home_team: string;
+  away_team: string;
+  is_past: number; // SQLite boolean (0 or 1)
+  // Data that deleting the fixture would take with it
+  available_count: number;
+  selected_count: number;
+}
+
+export interface SyncPlan {
+  new: SyncPlanNew[];
+  updated: SyncPlanUpdate[];
+  deleted: SyncPlanDelete[];
+  unchanged_count: number;
+}
+
 export interface SyncResponse {
   success: boolean;
+  dry_run: boolean;
   fixtures_updated: number;
   fixtures_unchanged: number;
   fixtures_new: number;
+  fixtures_deleted: number;
   updated_fixture_ids: string[];
+  plan: SyncPlan;
   message: string;
 }
 

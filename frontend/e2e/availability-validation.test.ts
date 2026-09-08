@@ -259,64 +259,163 @@ test.describe('Player Summary Statistics', () => {
 		await expect(syncButton).toBeEnabled();
 	});
 
-	test('should show confirmation dialog when sync button clicked', async ({ page }) => {
-		// Navigate to Management tab
+	// The seeded test team points at a placeholder ELTTL URL, so the sync response
+	// is stubbed. That keeps these tests off the live ELTTL site and lets us assert
+	// how each kind of change is reported.
+	const STUBBED_PLAN = {
+		new: [
+			{
+				match_date: '2026-10-07',
+				day_time: 'Oct 7 Wed 18:45',
+				home_team: 'Test Team E2E',
+				away_team: 'New Opponent',
+				venue: null
+			}
+		],
+		updated: [
+			{
+				id: 'fixture-moved',
+				home_team: 'Test Team E2E',
+				away_team: 'Moved Opponent',
+				old_match_date: '2026-10-14',
+				old_day_time: 'Oct 14 Wed 18:45',
+				new_match_date: '2026-10-15',
+				new_day_time: 'Oct 15 Thu 19:00',
+				available_count: 2,
+				selected_count: 0
+			}
+		],
+		deleted: [
+			{
+				id: 'fixture-gone',
+				match_date: '2026-10-21',
+				day_time: 'Oct 21 Wed 18:45',
+				home_team: 'Test Team E2E',
+				away_team: 'Cancelled Opponent',
+				is_past: 0,
+				available_count: 1,
+				selected_count: 3
+			}
+		],
+		unchanged_count: 4
+	};
+
+	async function stubSync(page: import('@playwright/test').Page, delayMs = 0) {
+		await page.route('**/availability/*/sync', async (route) => {
+			const dryRun = JSON.parse(route.request().postData() || '{}').dryRun === true;
+			if (delayMs > 0) {
+				await new Promise((resolve) => setTimeout(resolve, delayMs));
+			}
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({
+					success: true,
+					dry_run: dryRun,
+					fixtures_new: 1,
+					fixtures_updated: 1,
+					fixtures_deleted: 1,
+					fixtures_unchanged: 4,
+					updated_fixture_ids: ['fixture-moved'],
+					plan: STUBBED_PLAN,
+					message: dryRun
+						? 'Pending changes: 1 new, 1 updated, 1 deleted, 4 unchanged'
+						: 'Sync completed: 1 new, 1 updated, 1 deleted, 4 unchanged'
+				})
+			});
+		});
+	}
+
+	async function openManagementTab(page: import('@playwright/test').Page) {
 		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
 		const managementTab = page.locator('button:has-text("Management")');
 		await managementTab.click();
 		await managementTab.waitFor({ state: 'visible' });
-		
-		// Click sync button
+	}
+
+	test('should report new, rescheduled and deleted fixtures in the sync preview', async ({
+		page
+	}) => {
+		await stubSync(page);
+		await openManagementTab(page);
+
+		// Click sync button - this runs the dry run, it does not write anything
 		const syncButton = page.locator('button:has-text("Sync Fixtures")');
 		await syncButton.waitFor({ state: 'visible' });
 		await syncButton.click();
-		
-		// Check for confirmation dialog
-		const dialogHeading = page.locator('h3:has-text("Confirm Fixture Sync")');
-		await expect(dialogHeading).toBeVisible();
-		
-		// Check for dialog buttons
-		const cancelButton = page.locator('button:has-text("Cancel")');
-		const syncNowButton = page.locator('button:has-text("Sync Now")');
-		await expect(cancelButton).toBeVisible();
-		await expect(syncNowButton).toBeVisible();
-		
-		// Cancel the dialog
-		await cancelButton.click();
-		
-		// Dialog should be hidden
-		await expect(dialogHeading).not.toBeVisible();
+
+		// Check for the preview dialog
+		const dialog = page.locator('div[role="dialog"]');
+		await expect(page.locator('h3:has-text("Sync Preview")')).toBeVisible();
+
+		// Every category of change is listed
+		await expect(dialog.getByText('1 new fixture')).toBeVisible();
+		await expect(dialog.getByText('Test Team E2E v New Opponent')).toBeVisible();
+		await expect(dialog.getByText('1 rescheduled')).toBeVisible();
+		await expect(dialog.getByText('Oct 14 Wed 18:45 → Oct 15 Thu 19:00')).toBeVisible();
+		await expect(dialog.getByText('Clears 2 available')).toBeVisible();
+		await expect(dialog.getByText('1 to delete')).toBeVisible();
+		await expect(dialog.getByText('Test Team E2E v Cancelled Opponent')).toBeVisible();
+		await expect(dialog.getByText('1 available, 3 selected')).toBeVisible();
+		await expect(dialog.getByText('4 fixtures unchanged')).toBeVisible();
+
+		// The data loss warning is spelled out before anything is applied
+		await expect(
+			dialog.getByText('1 of these already have availability or selections recorded', {
+				exact: false
+			})
+		).toBeVisible();
 	});
 
-	test('should show loading state during sync', async ({ page }) => {
-		// Navigate to Management tab
-		await page.waitForSelector('nav[aria-label="Tabs"]', { timeout: 10000 });
-		const managementTab = page.locator('button:has-text("Management")');
-		await managementTab.click();
-		await managementTab.waitFor({ state: 'visible' });
-		
-		// Click sync button
+	test('should not apply anything when the sync preview is cancelled', async ({ page }) => {
+		await stubSync(page);
+		await openManagementTab(page);
+
+		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.click();
+
+		const dialogHeading = page.locator('h3:has-text("Sync Preview")');
+		await expect(dialogHeading).toBeVisible();
+
+		await page.locator('div[role="dialog"] button:has-text("Cancel")').click();
+
+		// Dialog closes and no sync result is recorded
+		await expect(dialogHeading).not.toBeVisible();
+		await expect(page.locator('text=Last Sync Results')).not.toBeVisible();
+	});
+
+	test('should apply the plan and report the results when confirmed', async ({ page }) => {
+		await stubSync(page);
+		await openManagementTab(page);
+
+		const syncButton = page.locator('button:has-text("Sync Fixtures")');
+		await syncButton.click();
+
+		await page.locator('div[role="dialog"] button:has-text("Apply Changes")').click();
+
+		// Dialog closes and the results panel reflects the applied plan
+		await expect(page.locator('h3:has-text("Sync Preview")')).not.toBeVisible();
+		await expect(page.locator('text=Last Sync Results')).toBeVisible();
+		await expect(page.locator('text=1 fixture(s) removed')).toBeVisible();
+	});
+
+	test('should show loading state while checking for changes', async ({ page }) => {
+		// Slow response so the intermediate button state is observable
+		await stubSync(page, 1500);
+		await openManagementTab(page);
+
 		const syncButton = page.locator('button:has-text("Sync Fixtures")');
 		await syncButton.waitFor({ state: 'visible' });
 		await syncButton.click();
-		
-		// Click Sync Now
-		const syncNowButton = page.locator('button:has-text("Sync Now")');
-		await syncNowButton.waitFor({ state: 'visible' });
-		await syncNowButton.click();
-		
-		// Wait for sync operation to complete
-		// Either the button will briefly show "Syncing..." or sync completes immediately
-		try {
-			// Try to wait for the syncing state to appear and then disappear
-			const syncingButton = page.locator('button:has-text("Syncing...")');
-			await syncingButton.waitFor({ state: 'visible', timeout: 1000 });
-			await syncingButton.waitFor({ state: 'hidden', timeout: 5000 });
-		} catch {
-			// Sync might complete too quickly to catch the intermediate state
-		}
-		
-		// After sync, button should be back to normal state
+
+		// The dry run scrapes ELTTL, so the button shows a checking state meanwhile
+		const checkingButton = page.locator('button:has-text("Checking...")');
+		await expect(checkingButton).toBeVisible();
+		await expect(checkingButton).toBeDisabled();
+
+		// Once the plan arrives the preview opens and the button returns to normal
+		await expect(page.locator('h3:has-text("Sync Preview")')).toBeVisible();
+		await page.locator('div[role="dialog"] button:has-text("Cancel")').click();
 		await expect(syncButton).toBeVisible();
 		await expect(syncButton).toBeEnabled();
 	});

@@ -1,8 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Env, ImportTeamRequest, ImportTeamResponse, SyncResponse, Fixture } from './types';
+import type { Env, ImportTeamRequest, ImportTeamResponse, SyncRequest, SyncResponse, Fixture } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
+import { computeSyncPlan, describeSyncPlan } from './sync';
 import { isValidELTTLUrl, parseMatchDate, isPastDate } from './utils';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -120,11 +121,16 @@ app.post('/api/availability/import', async (c) => {
 });
 
 // Sync fixtures from ELTTL URL
+// Pass { "dryRun": true } to get the plan back without writing anything
 app.post('/api/availability/:teamId/sync', async (c) => {
   const startTime = Date.now();
   try {
     const teamId = c.req.param('teamId');
-    log('info', 'Fixture sync requested', { teamId });
+    // The request body is optional, so an absent or malformed one is not an error
+    const body = await c.req.json<SyncRequest>().catch(() => ({} as SyncRequest));
+    const dryRun = body.dryRun === true;
+
+    log('info', 'Fixture sync requested', { teamId, dryRun });
 
     const db = new DatabaseService(c.env.DB);
 
@@ -142,94 +148,86 @@ app.post('/api/availability/:teamId/sync', async (c) => {
       fixtureCount: scrapedData.fixtures.length
     });
 
-    // Get existing fixtures and load into memory for efficient lookups
-    const existingFixtures = await db.getFixtures(teamId);
-    const fixtureMap = new Map<string, typeof existingFixtures[0]>();
-    for (const fixture of existingFixtures) {
-      const key = `${fixture.home_team}|${fixture.away_team}`;
-      fixtureMap.set(key, fixture);
-    }
-    
-    let fixturesUpdated = 0;
-    let fixturesUnchanged = 0;
-    let fixturesNew = 0;
-    const updatedFixtureIds: string[] = [];
+    const [existingFixtures, dataCounts] = await Promise.all([
+      db.getFixtures(teamId),
+      db.getFixtureDataCounts(teamId)
+    ]);
 
-    // Get all players for availability initialization
-    const players = await db.getPlayers(teamId);
-    const playerIds = players.map(p => p.id);
+    const plan = computeSyncPlan(existingFixtures, scrapedData.fixtures, dataCounts);
 
-    // Process each scraped fixture
-    for (const scraped of scrapedData.fixtures) {
-      const matchDate = parseMatchDate(scraped.date);
-      const dayTime = `${scraped.date} ${scraped.time}`;
+    if (!dryRun) {
+      // Get all players so new and rescheduled fixtures start with a blank availability grid
+      const players = await db.getPlayers(teamId);
+      const playerIds = players.map(p => p.id);
 
-      // Try to match with existing fixture using in-memory lookup
-      const key = `${scraped.homeTeam}|${scraped.awayTeam}`;
-      const existingFixture = fixtureMap.get(key);
-
-      if (existingFixture) {
-        // Check if date has changed
-        if (existingFixture.match_date !== matchDate || existingFixture.day_time !== dayTime) {
-          log('info', 'Fixture date changed', {
-            fixtureId: existingFixture.id,
-            oldDate: existingFixture.match_date,
-            newDate: matchDate,
-            homeTeam: scraped.homeTeam,
-            awayTeam: scraped.awayTeam
-          });
-
-          // Use batch operation to update fixture, clear data, and reinitialize availability
-          await db.batchUpdateFixture(existingFixture.id, matchDate, dayTime, playerIds);
-
-          fixturesUpdated++;
-          updatedFixtureIds.push(existingFixture.id);
-        } else {
-          fixturesUnchanged++;
-        }
-      } else {
-        // New fixture - create it with availability in a batch
+      for (const fixture of plan.new) {
         log('info', 'New fixture found', {
-          homeTeam: scraped.homeTeam,
-          awayTeam: scraped.awayTeam,
-          matchDate
+          homeTeam: fixture.home_team,
+          awayTeam: fixture.away_team,
+          matchDate: fixture.match_date
         });
 
         await db.batchCreateFixtureWithAvailability(
           teamId,
-          matchDate,
-          dayTime,
-          scraped.homeTeam,
-          scraped.awayTeam,
-          scraped.venue,
+          fixture.match_date,
+          fixture.day_time,
+          fixture.home_team,
+          fixture.away_team,
+          fixture.venue ?? undefined,
           playerIds
         );
+      }
 
-        fixturesNew++;
+      for (const fixture of plan.updated) {
+        log('info', 'Fixture date changed', {
+          fixtureId: fixture.id,
+          oldDate: fixture.old_match_date,
+          newDate: fixture.new_match_date,
+          homeTeam: fixture.home_team,
+          awayTeam: fixture.away_team
+        });
+
+        await db.batchUpdateFixture(
+          fixture.id,
+          fixture.new_match_date,
+          fixture.new_day_time,
+          playerIds
+        );
+      }
+
+      if (plan.deleted.length > 0) {
+        log('info', 'Fixtures no longer on ELTTL, deleting', {
+          teamId,
+          fixtureIds: plan.deleted.map(f => f.id),
+          withRecordedData: plan.deleted.filter(f => f.available_count > 0 || f.selected_count > 0).length
+        });
+
+        await db.batchDeleteFixtures(plan.deleted.map(f => f.id));
       }
     }
 
     const duration = Date.now() - startTime;
-    const message = fixturesUpdated > 0
-      ? `Sync completed: ${fixturesUpdated} updated, ${fixturesNew} new, ${fixturesUnchanged} unchanged`
-      : fixturesNew > 0
-      ? `Sync completed: ${fixturesNew} new fixtures added, ${fixturesUnchanged} unchanged`
-      : 'All fixtures are up to date';
+    const message = describeSyncPlan(plan, dryRun);
 
-    log('info', 'Fixture sync completed', {
+    log('info', dryRun ? 'Fixture sync preview completed' : 'Fixture sync completed', {
       teamId,
-      fixturesUpdated,
-      fixturesNew,
-      fixturesUnchanged,
+      dryRun,
+      fixturesUpdated: plan.updated.length,
+      fixturesNew: plan.new.length,
+      fixturesDeleted: plan.deleted.length,
+      fixturesUnchanged: plan.unchanged_count,
       durationMs: duration
     });
 
     return c.json<SyncResponse>({
       success: true,
-      fixtures_updated: fixturesUpdated,
-      fixtures_unchanged: fixturesUnchanged,
-      fixtures_new: fixturesNew,
-      updated_fixture_ids: updatedFixtureIds,
+      dry_run: dryRun,
+      fixtures_updated: plan.updated.length,
+      fixtures_unchanged: plan.unchanged_count,
+      fixtures_new: plan.new.length,
+      fixtures_deleted: plan.deleted.length,
+      updated_fixture_ids: plan.updated.map(f => f.id),
+      plan,
       message
     });
   } catch (error) {

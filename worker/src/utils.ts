@@ -80,9 +80,9 @@ export function parseMatchDate(dateStr: string, referenceDate?: Date): string {
 /**
  * Check if a date is in the past
  */
-export function isPastDate(dateStr: string): boolean {
+export function isPastDate(dateStr: string, referenceDate?: Date): boolean {
   const date = new Date(dateStr);
-  const today = new Date();
+  const today = referenceDate ? new Date(referenceDate) : new Date();
   today.setHours(0, 0, 0, 0);
   return date < today;
 }

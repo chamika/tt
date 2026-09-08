@@ -9,6 +9,7 @@
 	import PlayerSummaryCardSkeleton from '$lib/components/availability/PlayerSummaryCardSkeleton.svelte';
 	import EmptyState from '$lib/components/availability/EmptyState.svelte';
 	import Notification from '$lib/components/availability/Notification.svelte';
+	import SyncPreviewDialog from '$lib/components/availability/SyncPreviewDialog.svelte';
 	import { getTeamData, updateAvailability, setFinalSelection, getPlayerSummary, syncFixtures } from '$lib/api/availability';
 	import type { PlayerSummary, Team, Fixture, Player, SyncResponse } from '$lib/api/availability';
 
@@ -35,13 +36,14 @@
 	// Loading states
 	let loadingTeamData = $state(true);
 	let loadingSummaries = $state(true);
+	let isPreviewing = $state(false);
 	let isSyncing = $state(false);
 	let error = $state<string | null>(null);
 	let successMessage = $state<string | null>(null);
 	let pastFixturesEditMode = $state(false);
 	
-	// Sync state
-	let showSyncConfirm = $state(false);
+	// Sync state - the dry-run plan awaiting approval, and the applied result
+	let syncPreview = $state<SyncResponse | null>(null);
 	let syncResult = $state<SyncResponse | null>(null);
 
 	// Load team data on mount
@@ -126,19 +128,39 @@
 		}
 	}
 
-	async function handleSync() {
+	/**
+	 * Dry run first: fetch the plan from ELTTL without writing anything, so the
+	 * user can see what would be added, rescheduled and deleted before agreeing.
+	 */
+	async function handlePreviewSync() {
+		if (!team || isPreviewing || isSyncing) return;
+
+		isPreviewing = true;
+		error = null;
+
+		try {
+			syncPreview = await syncFixtures(team.id, { dryRun: true });
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : 'Failed to check for changes';
+			showError(errorMessage);
+		} finally {
+			isPreviewing = false;
+		}
+	}
+
+	async function handleApplySync() {
 		if (!team || isSyncing) return;
-		
-		showSyncConfirm = false;
+
 		isSyncing = true;
 		error = null;
-		
+
 		try {
 			const result = await syncFixtures(team.id);
 			syncResult = result;
-			
+			syncPreview = null;
+
 			showSuccess(result.message);
-			
+
 			// Reload team data to show updates
 			await loadTeamData();
 		} catch (err) {
@@ -381,7 +403,7 @@
 				Fixture Management
 			</h2>
 			<p class="text-gray-600 dark:text-gray-400 mb-6">
-				Sync your fixtures with the latest data from ELTTL. This will update any rescheduled fixtures and add new ones.
+				Sync your fixtures with the latest data from ELTTL. This adds new fixtures, updates rescheduled ones, and removes fixtures ELTTL no longer lists.
 			</p>
 
 			<div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6">
@@ -389,28 +411,32 @@
 					Sync Fixtures from ELTTL
 				</h3>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-					This will fetch the current fixtures from ELTTL and update any date changes. If a fixture date has changed, the availability and selections will be cleared for that fixture.
+					You will see exactly what would change before anything is saved. Rescheduled fixtures have their availability and selections cleared, and fixtures that are no longer on ELTTL are deleted along with their data.
 				</p>
 
 				{#if syncResult}
 					<div class="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
 						<h4 class="font-medium text-emerald-900 dark:text-emerald-100 mb-2">Last Sync Results:</h4>
 						<ul class="text-sm text-emerald-800 dark:text-emerald-200 space-y-1">
-							<li>✓ {syncResult.fixtures_updated} fixture(s) updated</li>
 							<li>✓ {syncResult.fixtures_new} new fixture(s) added</li>
+							<li>✓ {syncResult.fixtures_updated} fixture(s) updated</li>
+							<li>✓ {syncResult.fixtures_deleted} fixture(s) removed</li>
 							<li>✓ {syncResult.fixtures_unchanged} fixture(s) unchanged</li>
 						</ul>
 					</div>
 				{/if}
 
 				<button
-					onclick={() => showSyncConfirm = true}
-					disabled={isSyncing}
+					onclick={handlePreviewSync}
+					disabled={isPreviewing || isSyncing}
 					class="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors disabled:cursor-not-allowed"
 				>
 					{#if isSyncing}
 						<RefreshCw size={18} class="animate-spin" />
 						Syncing...
+					{:else if isPreviewing}
+						<RefreshCw size={18} class="animate-spin" />
+						Checking...
 					{:else}
 						<RefreshCw size={18} />
 						Sync Fixtures
@@ -421,32 +447,14 @@
 	{/if}
 </div>
 
-<!-- Sync Confirmation Dialog -->
-{#if showSyncConfirm}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" role="presentation" onclick={() => showSyncConfirm = false} onkeydown={(e) => e.key === 'Escape' && (showSyncConfirm = false)}>
-		<div class="bg-white dark:bg-slate-800 rounded-lg max-w-md w-full p-6" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key !== 'Escape') e.stopPropagation(); }}>
-			<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-				Confirm Fixture Sync
-			</h3>
-			<p class="text-gray-600 dark:text-gray-400 mb-6">
-				Are you sure you want to sync fixtures from ELTTL? Any fixtures with changed dates will have their availability and selections cleared.
-			</p>
-			<div class="flex gap-3 justify-end">
-				<button
-					onclick={() => showSyncConfirm = false}
-					class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-				>
-					Cancel
-				</button>
-				<button
-					onclick={handleSync}
-					class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-				>
-					Sync Now
-				</button>
-			</div>
-		</div>
-	</div>
+<!-- Sync Preview Dialog - shows the dry-run report before anything is written -->
+{#if syncPreview}
+	<SyncPreviewDialog
+		plan={syncPreview.plan}
+		applying={isSyncing}
+		onCancel={() => (syncPreview = null)}
+		onApply={handleApplySync}
+	/>
 {/if}
 
 <!-- Notifications - Fixed position at top right -->

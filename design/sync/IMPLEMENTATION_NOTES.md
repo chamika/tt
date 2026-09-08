@@ -67,16 +67,20 @@ async getFixtureByTeams(teamId: string, homeTeam: string, awayTeam: string) {
 }
 ```
 
-### 2. Deleted Fixtures
-**Current Behavior**: No handling for fixtures removed from ELTTL
+### 2. Deleted Fixtures — RESOLVED (September 2026)
+**Previous Behavior**: No handling for fixtures removed from ELTTL, so a cancelled fixture -
+or an entire stale schedule after a team was moved between divisions - stayed in the database
+forever with no way to remove it from the UI.
 
-**Impact**: If a fixture is canceled and removed from ELTTL, it remains in the database
+**Current Behavior**: Any stored fixture whose `home_team|away_team` key is absent from the
+scraped page is hard deleted, along with its availability and final selections
+(`DatabaseService.batchDeleteFixtures`). Deletion applies to past fixtures too.
 
-**Recommendations**:
-- Add `deleted_at` timestamp column to fixtures table
-- During sync, mark fixtures not found in ELTTL as deleted
-- Filter out deleted fixtures in UI by default
-- Add "show deleted" toggle in Management tab
+Rather than a soft-delete column and a "show deleted" toggle, the risk of losing data is
+handled by making the sync a two-step operation: `POST .../sync` with `{ "dryRun": true }`
+returns the plan without writing, and `computeSyncPlan` (`worker/src/sync.ts`) attaches
+`available_count` and `selected_count` to every update and deletion so the preview dialog can
+warn about exactly what would be lost. Nothing is written until the user presses Apply Changes.
 
 ### 3. Sync History
 **Current Behavior**: No tracking of sync operations

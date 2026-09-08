@@ -326,6 +326,110 @@ curl http://localhost:8787/api/availability/550e8400-e29b-41d4-a716-446655440000
 
 ---
 
+### 7. Sync Fixtures
+
+Re-scrape the team's ELTTL page and reconcile the stored fixtures with it: add fixtures that
+have appeared, update ones that have been rescheduled, and delete ones ELTTL no longer lists.
+
+**Endpoint**: `POST /api/availability/:teamId/sync`
+
+**Path Parameters**:
+- `teamId` (string, UUID): Team identifier
+
+**Request Body** (optional):
+```json
+{
+  "dryRun": true
+}
+```
+- `dryRun` (boolean, default `false`): When `true`, the plan is computed and returned but
+  nothing is written. Use this to show the user what would change before applying it.
+  An absent or malformed body is treated as `{ "dryRun": false }`.
+
+**Response**: `200 OK`
+```json
+{
+  "success": true,
+  "dry_run": true,
+  "fixtures_new": 1,
+  "fixtures_updated": 1,
+  "fixtures_deleted": 1,
+  "fixtures_unchanged": 4,
+  "updated_fixture_ids": ["fixture-uuid-2"],
+  "plan": {
+    "new": [
+      {
+        "match_date": "2026-10-07",
+        "day_time": "Oct 7 Wed 18:45",
+        "home_team": "Penicuik IV",
+        "away_team": "West Lothian VI",
+        "venue": null
+      }
+    ],
+    "updated": [
+      {
+        "id": "fixture-uuid-2",
+        "home_team": "Penicuik IV",
+        "away_team": "Corstorphine IV",
+        "old_match_date": "2026-10-14",
+        "old_day_time": "Oct 14 Wed 18:45",
+        "new_match_date": "2026-10-15",
+        "new_day_time": "Oct 15 Thu 19:00",
+        "available_count": 2,
+        "selected_count": 0
+      }
+    ],
+    "deleted": [
+      {
+        "id": "fixture-uuid-3",
+        "match_date": "2026-10-21",
+        "day_time": "Oct 21 Wed 18:45",
+        "home_team": "Penicuik IV",
+        "away_team": "Haddington IV",
+        "is_past": 0,
+        "available_count": 1,
+        "selected_count": 3
+      }
+    ],
+    "unchanged_count": 4
+  },
+  "message": "Pending changes: 1 new, 1 updated, 1 deleted, 4 unchanged"
+}
+```
+
+**Error Responses**:
+- `404 Not Found`: Team does not exist
+- `500 Internal Server Error`: ELTTL page could not be fetched or parsed
+
+**Example**:
+```bash
+# Preview what a sync would do
+curl -X POST http://localhost:8787/api/availability/550e8400-e29b-41d4-a716-446655440000/sync \
+  -H 'Content-Type: application/json' -d '{"dryRun":true}'
+
+# Apply it
+curl -X POST http://localhost:8787/api/availability/550e8400-e29b-41d4-a716-446655440000/sync
+```
+
+**Matching Logic**:
+- A scraped fixture is matched to a stored one by `home_team` + `away_team` (exact, case
+  sensitive). ELTTL exposes no fixture identifier, so this pairing is all that is available.
+- Matched, same date and time → unchanged, nothing is written.
+- Matched, different date or time → the fixture is updated and its availability and final
+  selection are cleared, since the team may no longer be able to play on the new date.
+- Not matched → a new fixture is created with a blank availability grid.
+- Stored but absent from ELTTL → the fixture is deleted along with its availability and
+  final selections.
+
+**Notes**:
+- `available_count` and `selected_count` report the data an update or deletion would destroy,
+  so a client can warn before applying the plan.
+- `is_past` is computed from `match_date`; past fixtures are deleted too when ELTTL drops them.
+- The plan returned by a dry run and by the applied sync are computed the same way, but the
+  ELTTL page is re-scraped on each call, so a late change on ELTTL can still shift the result.
+
+---
+
 ## Data Types
 
 ### Team
@@ -440,6 +544,11 @@ Logs are accessible via Cloudflare Workers dashboard.
 
 ## Changelog
 
+### v1.1.0 (September 2026)
+- Added `POST /api/availability/:teamId/sync`
+- Sync now deletes fixtures that ELTTL no longer lists
+- Added `dryRun` so changes can be previewed before being applied
+
 ### v1.0.0 (December 2025)
 - Initial API release
 - Import, CRUD, and summary endpoints
@@ -448,5 +557,5 @@ Logs are accessible via Cloudflare Workers dashboard.
 
 ---
 
-**API Version**: 1.0.0  
-**Last Updated**: December 2025
+**API Version**: 1.1.0  
+**Last Updated**: September 2026
