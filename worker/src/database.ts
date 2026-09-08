@@ -1,4 +1,4 @@
-import type { Env, Team, FixtureRow, Player, Availability, FinalSelection } from './types';
+import type { Env, Team, FixtureRow, Player, Availability, FinalSelection, FixtureDataCounts } from './types';
 import { generateUUID, now } from './utils';
 
 /**
@@ -306,6 +306,83 @@ export class DatabaseService {
       venue: venue || null,
       created_at: timestamp
     };
+  }
+
+  /**
+   * Number of "available" marks and final selections per fixture for a team.
+   *
+   * Used by the sync preview to warn about data a fixture update or deletion
+   * would destroy. Fixtures with no data at all are simply absent from the map.
+   */
+  async getFixtureDataCounts(teamId: string): Promise<Map<string, FixtureDataCounts>> {
+    const [availability, selections] = await Promise.all([
+      this.db
+        .prepare(`
+          SELECT a.fixture_id AS fixture_id, COUNT(*) AS count FROM availability a
+          JOIN fixtures f ON a.fixture_id = f.id
+          WHERE f.team_id = ? AND a.is_available = 1
+          GROUP BY a.fixture_id
+        `)
+        .bind(teamId)
+        .all<{ fixture_id: string; count: number }>(),
+      this.db
+        .prepare(`
+          SELECT fs.fixture_id AS fixture_id, COUNT(*) AS count FROM final_selections fs
+          JOIN fixtures f ON fs.fixture_id = f.id
+          WHERE f.team_id = ?
+          GROUP BY fs.fixture_id
+        `)
+        .bind(teamId)
+        .all<{ fixture_id: string; count: number }>()
+    ]);
+
+    const counts = new Map<string, FixtureDataCounts>();
+
+    const entryFor = (fixtureId: string): FixtureDataCounts => {
+      let entry = counts.get(fixtureId);
+      if (!entry) {
+        entry = { available: 0, selected: 0 };
+        counts.set(fixtureId, entry);
+      }
+      return entry;
+    };
+
+    for (const row of availability.results || []) {
+      entryFor(row.fixture_id).available = row.count;
+    }
+    for (const row of selections.results || []) {
+      entryFor(row.fixture_id).selected = row.count;
+    }
+
+    return counts;
+  }
+
+  /**
+   * Delete fixtures along with their availability and final selections.
+   *
+   * Child rows are removed explicitly rather than relying on ON DELETE CASCADE,
+   * which only fires when D1 has PRAGMA foreign_keys=ON.
+   */
+  async batchDeleteFixtures(fixtureIds: string[]): Promise<void> {
+    if (fixtureIds.length === 0) return;
+
+    // Three statements per fixture, kept well inside D1's per-batch limit
+    const FIXTURES_PER_BATCH = 50;
+
+    for (let i = 0; i < fixtureIds.length; i += FIXTURES_PER_BATCH) {
+      const chunk = fixtureIds.slice(i, i + FIXTURES_PER_BATCH);
+      const statements = [];
+
+      for (const fixtureId of chunk) {
+        statements.push(
+          this.db.prepare('DELETE FROM availability WHERE fixture_id = ?').bind(fixtureId),
+          this.db.prepare('DELETE FROM final_selections WHERE fixture_id = ?').bind(fixtureId),
+          this.db.prepare('DELETE FROM fixtures WHERE id = ?').bind(fixtureId)
+        );
+      }
+
+      await this.db.batch(statements);
+    }
   }
 
   async getFinalSelections(teamId: string): Promise<FinalSelection[]> {

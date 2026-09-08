@@ -503,5 +503,97 @@ describe('DatabaseService Integration Tests', () => {
 			// All operations should complete without errors
 			expect(true).toBe(true);
 		});
+
+		it('should count availability and selections per fixture', async () => {
+			const queries: string[] = [];
+
+			mockD1.prepare = (query: string) => {
+				queries.push(query);
+				const isAvailability = query.includes('FROM availability');
+				return {
+					bind: () => ({
+						all: async () => ({
+							results: isAvailability
+								? [
+										{ fixture_id: 'fixture-1', count: 2 },
+										{ fixture_id: 'fixture-2', count: 5 }
+									]
+								: [{ fixture_id: 'fixture-2', count: 3 }],
+							success: true
+						})
+					})
+				};
+			};
+
+			const counts = await db.getFixtureDataCounts('team-456');
+
+			expect(queries).toHaveLength(2);
+			expect(counts.get('fixture-1')).toEqual({ available: 2, selected: 0 });
+			expect(counts.get('fixture-2')).toEqual({ available: 5, selected: 3 });
+			// Fixtures with no recorded data are simply absent
+			expect(counts.get('fixture-3')).toBeUndefined();
+		});
+
+		it('should delete fixtures along with their availability and selections', async () => {
+			const statements: { query: string; param: string }[] = [];
+			let batchCount = 0;
+
+			mockD1.prepare = (query: string) => ({
+				bind: (param: string) => {
+					statements.push({ query, param });
+					return { run: async () => ({ success: true }) };
+				}
+			});
+			mockD1.batch = async () => {
+				batchCount++;
+				return [];
+			};
+
+			await db.batchDeleteFixtures(['fixture-1', 'fixture-2']);
+
+			expect(batchCount).toBe(1);
+			expect(statements).toHaveLength(6);
+			expect(statements.filter((s) => s.query.includes('DELETE FROM availability'))).toHaveLength(2);
+			expect(statements.filter((s) => s.query.includes('DELETE FROM final_selections'))).toHaveLength(2);
+			expect(statements.filter((s) => s.query.includes('DELETE FROM fixtures'))).toHaveLength(2);
+			expect(statements.map((s) => s.param)).toEqual([
+				'fixture-1',
+				'fixture-1',
+				'fixture-1',
+				'fixture-2',
+				'fixture-2',
+				'fixture-2'
+			]);
+		});
+
+		it('should not touch the database when there is nothing to delete', async () => {
+			let batchCalled = false;
+			mockD1.batch = async () => {
+				batchCalled = true;
+				return [];
+			};
+
+			await db.batchDeleteFixtures([]);
+
+			expect(batchCalled).toBe(false);
+		});
+
+		it('should chunk large deletions into separate batches', async () => {
+			const batchSizes: number[] = [];
+
+			mockD1.prepare = () => ({
+				bind: () => ({ run: async () => ({ success: true }) })
+			});
+			mockD1.batch = async (statements: any[]) => {
+				batchSizes.push(statements.length);
+				return [];
+			};
+
+			// 120 fixtures => 50 + 50 + 20, three statements each
+			const ids = Array.from({ length: 120 }, (_, i) => `fixture-${i}`);
+			await db.batchDeleteFixtures(ids);
+
+			expect(batchSizes).toEqual([150, 150, 60]);
+		});
 	});
 });

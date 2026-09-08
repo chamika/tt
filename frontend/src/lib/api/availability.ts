@@ -17,7 +17,11 @@ export type {
   Player,
   TeamData,
   PlayerSummary,
-  SyncResponse
+  SyncResponse,
+  SyncPlan,
+  SyncPlanNew,
+  SyncPlanUpdate,
+  SyncPlanDelete
 } from '$lib/types/availability';
 
 export type AvailabilityMap = Record<string, boolean>;
@@ -128,13 +132,20 @@ export async function getPlayerSummary(teamId: string): Promise<PlayerSummary[]>
 
 /**
  * Sync fixtures from ELTTL URL
+ *
+ * Pass `{ dryRun: true }` to get back the plan of changes without applying any
+ * of them, so the user can review deletions before they happen.
  */
-export async function syncFixtures(teamId: string): Promise<SyncResponse> {
+export async function syncFixtures(
+  teamId: string,
+  options: { dryRun?: boolean } = {}
+): Promise<SyncResponse> {
   const response = await fetch(`${API_BASE_URL}/availability/${teamId}/sync`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    body: JSON.stringify({ dryRun: options.dryRun ?? false })
   });
 
   if (!response.ok) {
