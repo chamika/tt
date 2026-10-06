@@ -62,13 +62,13 @@
 </script>
 
 <div
-	class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 z-50"
+	class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
 	role="presentation"
 	onclick={close}
 	onkeydown={(e) => e.key === 'Escape' && close()}
 >
 	<div
-		class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col p-5 sm:p-6"
+		class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col p-5 sm:p-6"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="result-dialog-title"
