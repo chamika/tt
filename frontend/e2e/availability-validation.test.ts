@@ -122,10 +122,9 @@ test.describe('Availability Tracker Validation', () => {
 		await expect(summaryHeading).toBeVisible({ timeout: 15000 });
 		
 		// Check that player summary cards are displayed
+		// The heading is shown while skeleton cards load, so wait for a real card rather than counting once
 		const summaryCards = page.locator('[class*="bg-white"]').filter({ hasText: /Selection Rate|Played|Scheduled/ });
-		const cardCount = await summaryCards.count();
-		
-		expect(cardCount).toBeGreaterThan(0);
+		await expect(summaryCards.first()).toBeVisible({ timeout: 15000 });
 	});
 });
 

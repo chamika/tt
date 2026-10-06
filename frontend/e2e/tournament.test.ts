@@ -59,9 +59,11 @@ test.describe('Tournament Brackets', () => {
 	});
 
 	test('creates a knockout from the form, starts it and plays it to a champion', async ({ page }) => {
-		await page.goto('/tournament/new');
+		// Wait for hydration: a radio picked before Svelte takes over the page is reset to the default
+		await page.goto('/tournament/new', { waitUntil: 'networkidle' });
 		await page.getByLabel('Name', { exact: true }).fill('E2E Knockout');
 		await page.getByRole('radio', { name: /Games won/ }).check({ force: true });
+		await expect(page.locator('label', { hasText: 'Games won' })).toHaveClass(/border-emerald-600/);
 		await page.getByRole('button', { name: 'Paste list' }).click();
 		await page.getByRole('textbox', { name: /One player per line/ }).fill('Ann, 1\nBob, 2\nCat, 3\nDan, 4\nEve, 5\nFay, 6');
 		await page.getByRole('button', { name: 'Add players' }).click();
@@ -182,7 +184,8 @@ test.describe('Tournament Brackets', () => {
 	});
 
 	test('explains setup problems', async ({ page }) => {
-		await page.goto('/tournament/new');
+		// Wait for hydration: a radio picked before Svelte takes over the page is reset to the default
+		await page.goto('/tournament/new', { waitUntil: 'networkidle' });
 		await page.getByLabel('Name', { exact: true }).fill('E2E Invalid');
 		await page.getByRole('radio', { name: /^Handicap/ }).check({ force: true });
 		await page.getByLabel('Player 1 name').fill('Ann');
