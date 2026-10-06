@@ -27,7 +27,6 @@
 			description="Coordinate your ELTTL league matches with your team."
 			icon="Calendar"
 			href="/availability"
-			badge="New"
 		/>
 
 		<ToolCard
