@@ -1,10 +1,14 @@
 import type {
   FixtureDataCounts,
   FixtureRow,
+  FixtureSyncPlan,
+  Player,
   ScrapedFixture,
   SyncPlan,
   SyncPlanDelete,
   SyncPlanNew,
+  SyncPlanPlayer,
+  SyncPlanPlayers,
   SyncPlanUpdate
 } from './types';
 import { isPastDate, parseMatchDate } from './utils';
@@ -35,7 +39,7 @@ export function computeSyncPlan(
   scraped: ScrapedFixture[],
   dataCounts: Map<string, FixtureDataCounts>,
   referenceDate?: Date
-): SyncPlan {
+): FixtureSyncPlan {
   const existingByKey = new Map<string, FixtureRow>();
   for (const fixture of existing) {
     existingByKey.set(fixtureKey(fixture.home_team, fixture.away_team), fixture);
@@ -112,10 +116,68 @@ export function computeSyncPlan(
 }
 
 /**
+ * Key used to match a scraped squad member against a stored player.
+ * ELTTL person ids are not stored, so the name is all we have.
+ */
+function playerKey(name: string): string {
+  return name.trim();
+}
+
+/**
+ * Work out how the stored squad differs from the one ELTTL lists.
+ *
+ * Players who have left are hidden rather than deleted so their availability and
+ * selection history stays intact; if they reappear on ELTTL they are brought back.
+ *
+ * @param existing Every stored player for the team, including hidden ones
+ * @param scrapedNames The active squad currently listed on ELTTL
+ */
+export function computePlayerPlan(existing: Player[], scrapedNames: string[]): SyncPlanPlayers {
+  const existingByKey = new Map<string, Player>();
+  for (const player of existing) {
+    existingByKey.set(playerKey(player.name), player);
+  }
+
+  const added: string[] = [];
+  const rejoined: SyncPlanPlayer[] = [];
+  const scrapedKeys = new Set<string>();
+
+  for (const name of scrapedNames) {
+    const key = playerKey(name);
+    if (scrapedKeys.has(key)) continue;
+    scrapedKeys.add(key);
+
+    const match = existingByKey.get(key);
+    if (!match) {
+      added.push(key);
+    } else if (match.left_at) {
+      rejoined.push({ id: match.id, name: match.name });
+    }
+  }
+
+  const left: SyncPlanPlayer[] = existing
+    .filter(p => !p.left_at && !scrapedKeys.has(playerKey(p.name)))
+    .map(p => ({ id: p.id, name: p.name }));
+
+  return { added, left, rejoined };
+}
+
+function hasPlayerChanges(players: SyncPlanPlayers): boolean {
+  return players.added.length > 0 || players.left.length > 0 || players.rejoined.length > 0;
+}
+
+/**
  * True when applying the plan would not change anything
  */
 export function isEmptyPlan(plan: SyncPlan): boolean {
-  return plan.new.length === 0 && plan.updated.length === 0 && plan.deleted.length === 0;
+  return plan.new.length === 0 &&
+    plan.updated.length === 0 &&
+    plan.deleted.length === 0 &&
+    !hasPlayerChanges(plan.players);
+}
+
+function pluralPlayers(count: number): string {
+  return `${count} player${count === 1 ? '' : 's'}`;
 }
 
 /**
@@ -123,7 +185,7 @@ export function isEmptyPlan(plan: SyncPlan): boolean {
  */
 export function describeSyncPlan(plan: SyncPlan, dryRun: boolean): string {
   if (isEmptyPlan(plan)) {
-    return 'All fixtures are up to date';
+    return 'Fixtures and squad are up to date';
   }
 
   const parts: string[] = [];
@@ -131,6 +193,11 @@ export function describeSyncPlan(plan: SyncPlan, dryRun: boolean): string {
   if (plan.updated.length > 0) parts.push(`${plan.updated.length} updated`);
   if (plan.deleted.length > 0) parts.push(`${plan.deleted.length} deleted`);
   parts.push(`${plan.unchanged_count} unchanged`);
+
+  const { added, left, rejoined } = plan.players;
+  if (added.length > 0) parts.push(`${pluralPlayers(added.length)} joined`);
+  if (left.length > 0) parts.push(`${pluralPlayers(left.length)} left`);
+  if (rejoined.length > 0) parts.push(`${pluralPlayers(rejoined.length)} rejoined`);
 
   const summary = parts.join(', ');
   return dryRun ? `Pending changes: ${summary}` : `Sync completed: ${summary}`;

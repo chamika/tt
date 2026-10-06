@@ -21,7 +21,8 @@ export type {
   SyncPlan,
   SyncPlanNew,
   SyncPlanUpdate,
-  SyncPlanDelete
+  SyncPlanDelete,
+  SyncPlanPlayers
 } from '$lib/types/availability';
 
 export type AvailabilityMap = Record<string, boolean>;

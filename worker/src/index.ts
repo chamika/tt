@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { Env, ImportTeamRequest, ImportTeamResponse, SyncRequest, SyncResponse, Fixture } from './types';
+import type { Env, ImportTeamRequest, ImportTeamResponse, SyncRequest, SyncResponse, SyncPlan, Fixture } from './types';
 import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
-import { computeSyncPlan, describeSyncPlan } from './sync';
+import { computePlayerPlan, computeSyncPlan, describeSyncPlan } from './sync';
 import { isValidELTTLUrl, parseMatchDate, isPastDate } from './utils';
 import { log } from './log';
 import tournamentRoutes from './tournament/routes';
@@ -139,17 +139,34 @@ app.post('/api/availability/:teamId/sync', async (c) => {
       fixtureCount: scrapedData.fixtures.length
     });
 
-    const [existingFixtures, dataCounts] = await Promise.all([
+    const [existingFixtures, dataCounts, existingPlayers] = await Promise.all([
       db.getFixtures(teamId),
-      db.getFixtureDataCounts(teamId)
+      db.getFixtureDataCounts(teamId),
+      db.getPlayers(teamId)
     ]);
 
-    const plan = computeSyncPlan(existingFixtures, scrapedData.fixtures, dataCounts);
+    const plan: SyncPlan = {
+      ...computeSyncPlan(existingFixtures, scrapedData.fixtures, dataCounts),
+      players: computePlayerPlan(existingPlayers, scrapedData.players)
+    };
 
     if (!dryRun) {
-      // Get all players so new and rescheduled fixtures start with a blank availability grid
+      // Squad changes go first so new and rescheduled fixtures are built for the current squad
+      const { added, left, rejoined } = plan.players;
+      if (added.length > 0 || left.length > 0 || rejoined.length > 0) {
+        log('info', 'Squad changed on ELTTL', {
+          teamId,
+          added,
+          left: left.map(p => p.name),
+          rejoined: rejoined.map(p => p.name)
+        });
+
+        await db.batchApplyPlayerChanges(teamId, plan.players);
+      }
+
+      // Only active players get a blank availability grid on new and rescheduled fixtures
       const players = await db.getPlayers(teamId);
-      const playerIds = players.map(p => p.id);
+      const playerIds = players.filter(p => !p.left_at).map(p => p.id);
 
       for (const fixture of plan.new) {
         log('info', 'New fixture found', {
@@ -207,6 +224,9 @@ app.post('/api/availability/:teamId/sync', async (c) => {
       fixturesNew: plan.new.length,
       fixturesDeleted: plan.deleted.length,
       fixturesUnchanged: plan.unchanged_count,
+      playersAdded: plan.players.added.length,
+      playersLeft: plan.players.left.length,
+      playersRejoined: plan.players.rejoined.length,
       durationMs: duration
     });
 
@@ -217,6 +237,9 @@ app.post('/api/availability/:teamId/sync', async (c) => {
       fixtures_unchanged: plan.unchanged_count,
       fixtures_new: plan.new.length,
       fixtures_deleted: plan.deleted.length,
+      players_added: plan.players.added.length,
+      players_left: plan.players.left.length,
+      players_rejoined: plan.players.rejoined.length,
       updated_fixture_ids: plan.updated.map(f => f.id),
       plan,
       message
@@ -456,7 +479,7 @@ app.get('/api/availability/:teamId/summary', async (c) => {
     }));
 
     // Calculate summary for each player
-    const summary = players.map(player => {
+    const summary = players.flatMap(player => {
       let gamesPlayed = 0;
       let gamesScheduled = 0;
       let totalSelections = 0;
@@ -480,14 +503,19 @@ app.get('/api/availability/:teamId/summary', async (c) => {
         ? Math.round((totalSelections / fixtures.length) * 100) 
         : 0;
 
-      return {
+      // Players who have left only stay in the stats if they ever played a part
+      const left = Boolean(player.left_at);
+      if (left && totalSelections === 0) return [];
+
+      return [{
         playerId: player.id,
         playerName: player.name,
         gamesPlayed,
         gamesScheduled,
         totalGames,
-        selectionRate
-      };
+        selectionRate,
+        left
+      }];
     });
 
     // Cache disabled

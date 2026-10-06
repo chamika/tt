@@ -25,6 +25,8 @@ export interface Player {
   team_id: string;
   name: string;
   created_at: number;
+  // When the player left the squad; null while they are active
+  left_at: number | null;
 }
 
 export interface TeamData {
@@ -42,6 +44,7 @@ export interface PlayerSummary {
   gamesScheduled: number;
   totalGames: number;
   selectionRate: number;
+  left: boolean; // No longer in the ELTTL squad
 }
 
 export interface ImportTeamRequest {
@@ -95,11 +98,24 @@ export interface SyncPlanDelete {
   selected_count: number;
 }
 
+export interface SyncPlanPlayer {
+  id: string;
+  name: string;
+}
+
+// Squad changes: who joined, who left (hidden, history kept) and who came back
+export interface SyncPlanPlayers {
+  added: string[];
+  left: SyncPlanPlayer[];
+  rejoined: SyncPlanPlayer[];
+}
+
 export interface SyncPlan {
   new: SyncPlanNew[];
   updated: SyncPlanUpdate[];
   deleted: SyncPlanDelete[];
   unchanged_count: number;
+  players: SyncPlanPlayers;
 }
 
 export interface SyncResponse {
@@ -109,6 +125,9 @@ export interface SyncResponse {
   fixtures_unchanged: number;
   fixtures_new: number;
   fixtures_deleted: number;
+  players_added: number;
+  players_left: number;
+  players_rejoined: number;
   updated_fixture_ids: string[];
   plan: SyncPlan;
   message: string;

@@ -1,4 +1,4 @@
-import type { Env, Team, FixtureRow, Player, Availability, FinalSelection, FixtureDataCounts } from './types';
+import type { Env, Team, FixtureRow, Player, Availability, FinalSelection, FixtureDataCounts, SyncPlanPlayers } from './types';
 import { generateUUID, now } from './utils';
 
 /**
@@ -131,7 +131,8 @@ export class DatabaseService {
       id,
       team_id: teamId,
       name,
-      created_at: timestamp
+      created_at: timestamp,
+      left_at: null
     };
   }
 
@@ -142,6 +143,70 @@ export class DatabaseService {
       .all<Player>();
     
     return result.results || [];
+  }
+
+  /**
+   * Apply the squad half of a sync plan.
+   *
+   * New players are created, players who left are hidden and returning players are
+   * shown again. Added and returning players then get a blank availability row on
+   * every fixture they are missing from, since availability updates only touch
+   * existing rows.
+   */
+  async batchApplyPlayerChanges(teamId: string, changes: SyncPlanPlayers): Promise<void> {
+    const timestamp = now();
+    const statements = [];
+    const needAvailability: string[] = [];
+
+    for (const name of changes.added) {
+      const id = generateUUID();
+      needAvailability.push(id);
+      statements.push(
+        this.db.prepare('INSERT INTO players (id, team_id, name, created_at) VALUES (?, ?, ?, ?)')
+          .bind(id, teamId, name, timestamp)
+      );
+    }
+
+    for (const player of changes.left) {
+      statements.push(
+        this.db.prepare('UPDATE players SET left_at = ? WHERE id = ? AND team_id = ?')
+          .bind(timestamp, player.id, teamId)
+      );
+    }
+
+    for (const player of changes.rejoined) {
+      needAvailability.push(player.id);
+      statements.push(
+        this.db.prepare('UPDATE players SET left_at = NULL WHERE id = ? AND team_id = ?')
+          .bind(player.id, teamId)
+      );
+    }
+
+    if (statements.length === 0) return;
+    await this.db.batch(statements);
+
+    if (needAvailability.length === 0) return;
+
+    const fixtures = await this.getFixtures(teamId);
+    const rows: { fixtureId: string; playerId: string }[] = [];
+    for (const fixture of fixtures) {
+      for (const playerId of needAvailability) {
+        rows.push({ fixtureId: fixture.id, playerId });
+      }
+    }
+
+    // One statement per row, kept well inside D1's per-batch limit
+    const ROWS_PER_BATCH = 100;
+
+    for (let i = 0; i < rows.length; i += ROWS_PER_BATCH) {
+      await this.db.batch(
+        rows.slice(i, i + ROWS_PER_BATCH).map(({ fixtureId, playerId }) =>
+          this.db.prepare(
+            'INSERT OR IGNORE INTO availability (id, fixture_id, player_id, is_available, updated_at) VALUES (?, ?, ?, ?, ?)'
+          ).bind(generateUUID(), fixtureId, playerId, 0, timestamp)
+        )
+      );
+    }
   }
 
   async getPlayer(playerId: string): Promise<Player | null> {

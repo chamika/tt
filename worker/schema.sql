@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS players (
   team_id TEXT NOT NULL,
   name TEXT NOT NULL,
   created_at INTEGER NOT NULL,
+  -- Set when the player drops off the ELTTL squad; NULL while they are active
+  left_at INTEGER,
   FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE
 );
 
