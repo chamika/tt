@@ -114,7 +114,8 @@
 		<p class="mt-2 text-xs text-gray-500 dark:text-gray-400 tabular-nums">{score}</p>
 	{/if}
 
-	{#if match.handicap && match.status !== 'bye' && (isHandicap || !compact)}
+	<!-- Only handicap games need the start and play-to scores; everything else is a normal game to 11 -->
+	{#if isHandicap && match.handicap && match.status !== 'bye'}
 		<p class="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400" data-testid="match-handicap">
 			{describeHandicap(match.handicap)}
 		</p>

@@ -84,10 +84,12 @@
 		<h3 id="result-dialog-title" class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
 			{nameA} v {nameB}
 		</h3>
-		{#if match.handicap}
+		{#if view.tournament.seeding_mode === 'handicap' && match.handicap}
 			<p class="text-sm font-medium text-emerald-700 dark:text-emerald-400">
 				{describeHandicap(match.handicap)} · best of {bestOf}
 			</p>
+		{:else}
+			<p class="text-sm text-gray-600 dark:text-gray-400">Best of {bestOf}</p>
 		{/if}
 		{#if match.handicap?.warning}
 			<p class="mt-2 flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
