@@ -296,7 +296,12 @@ test.describe('Player Summary Statistics', () => {
 				selected_count: 3
 			}
 		],
-		unchanged_count: 4
+		unchanged_count: 4,
+		players: {
+			added: ['New Signing'],
+			left: [{ id: 'player-gone', name: 'Former Player' }],
+			rejoined: []
+		}
 	};
 
 	async function stubSync(page: import('@playwright/test').Page, delayMs = 0) {
@@ -315,11 +320,14 @@ test.describe('Player Summary Statistics', () => {
 					fixtures_updated: 1,
 					fixtures_deleted: 1,
 					fixtures_unchanged: 4,
+					players_added: 1,
+					players_left: 1,
+					players_rejoined: 0,
 					updated_fixture_ids: ['fixture-moved'],
 					plan: STUBBED_PLAN,
 					message: dryRun
-						? 'Pending changes: 1 new, 1 updated, 1 deleted, 4 unchanged'
-						: 'Sync completed: 1 new, 1 updated, 1 deleted, 4 unchanged'
+						? 'Pending changes: 1 new, 1 updated, 1 deleted, 4 unchanged, 1 player joined, 1 player left'
+						: 'Sync completed: 1 new, 1 updated, 1 deleted, 4 unchanged, 1 player joined, 1 player left'
 				})
 			});
 		});
@@ -357,6 +365,14 @@ test.describe('Player Summary Statistics', () => {
 		await expect(dialog.getByText('Test Team E2E v Cancelled Opponent')).toBeVisible();
 		await expect(dialog.getByText('1 available, 3 selected')).toBeVisible();
 		await expect(dialog.getByText('4 fixtures unchanged')).toBeVisible();
+
+		// Squad changes from the ELTTL team page are listed too
+		await expect(dialog.getByText('Squad changes')).toBeVisible();
+		await expect(dialog.getByText('New Signing')).toBeVisible();
+		await expect(dialog.getByText('Former Player')).toBeVisible();
+		await expect(
+			dialog.getByText('Hidden from upcoming fixtures. Past availability and selections are kept.')
+		).toBeVisible();
 
 		// The data loss warning is spelled out before anything is applied
 		await expect(
@@ -396,6 +412,7 @@ test.describe('Player Summary Statistics', () => {
 		await expect(page.locator('h3:has-text("Sync Preview")')).not.toBeVisible();
 		await expect(page.locator('text=Last Sync Results')).toBeVisible();
 		await expect(page.locator('text=1 fixture(s) removed')).toBeVisible();
+		await expect(page.locator('text=1 player(s) left and hidden')).toBeVisible();
 	});
 
 	test('should show loading state while checking for changes', async ({ page }) => {

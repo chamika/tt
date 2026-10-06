@@ -23,9 +23,9 @@ describe('POST /api/availability/:teamId/sync', () => {
   };
 
   const mockPlayers: Player[] = [
-    { id: 'player-1', team_id: mockTeamId, name: 'Player A', created_at: 1704067200000 },
-    { id: 'player-2', team_id: mockTeamId, name: 'Player B', created_at: 1704067200000 },
-    { id: 'player-3', team_id: mockTeamId, name: 'Player C', created_at: 1704067200000 }
+    { id: 'player-1', team_id: mockTeamId, name: 'Player A', created_at: 1704067200000, left_at: null },
+    { id: 'player-2', team_id: mockTeamId, name: 'Player B', created_at: 1704067200000, left_at: null },
+    { id: 'player-3', team_id: mockTeamId, name: 'Player C', created_at: 1704067200000, left_at: null }
   ];
 
   const allPlayerIds = ['player-1', 'player-2', 'player-3'];
@@ -109,7 +109,8 @@ describe('POST /api/availability/:teamId/sync', () => {
       createFixture: vi.fn(),
       batchUpdateFixture: vi.fn(),
       batchCreateFixtureWithAvailability: vi.fn(),
-      batchDeleteFixtures: vi.fn()
+      batchDeleteFixtures: vi.fn(),
+      batchApplyPlayerChanges: vi.fn()
     };
 
     // Mock DatabaseService constructor
@@ -144,9 +145,18 @@ describe('POST /api/availability/:teamId/sync', () => {
       fixtures_unchanged: 2,
       fixtures_new: 0,
       fixtures_deleted: 0,
+      players_added: 0,
+      players_left: 0,
+      players_rejoined: 0,
       updated_fixture_ids: [],
-      plan: { new: [], updated: [], deleted: [], unchanged_count: 2 },
-      message: 'All fixtures are up to date'
+      plan: {
+        new: [],
+        updated: [],
+        deleted: [],
+        unchanged_count: 2,
+        players: { added: [], left: [], rejoined: [] }
+      },
+      message: 'Fixtures and squad are up to date'
     });
 
     // Verify no updates were made
@@ -423,7 +433,7 @@ describe('POST /api/availability/:teamId/sync', () => {
     expect(mockDbInstance.batchCreateFixtureWithAvailability).not.toHaveBeenCalled();
     expect(mockDbInstance.batchUpdateFixture).not.toHaveBeenCalled();
     expect(mockDbInstance.batchDeleteFixtures).not.toHaveBeenCalled();
-    expect(mockDbInstance.getPlayers).not.toHaveBeenCalled();
+    expect(mockDbInstance.batchApplyPlayerChanges).not.toHaveBeenCalled();
   });
 
   it('should apply the sync when dryRun is explicitly false', async () => {
@@ -435,5 +445,94 @@ describe('POST /api/availability/:teamId/sync', () => {
     expect(res.status).toBe(200);
     expect(json.dry_run).toBe(false);
     expect(mockDbInstance.batchDeleteFixtures).toHaveBeenCalledWith(['fixture-2']);
+  });
+
+  it('should report a player who has left the squad without writing during a dry run', async () => {
+    vi.mocked(scraper.scrapeELTTLTeam).mockResolvedValue({
+      ...scrapedData([scrapedFixture1, scrapedFixture2]),
+      players: ['Player A', 'Player B']
+    });
+
+    const res = await app.fetch(syncRequest({ dryRun: true }), { DB: {} as any });
+    const json: any = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.players_left).toBe(1);
+    expect(json.plan.players).toEqual({
+      added: [],
+      left: [{ id: 'player-3', name: 'Player C' }],
+      rejoined: []
+    });
+    expect(json.message).toBe('Pending changes: 2 unchanged, 1 player left');
+    expect(mockDbInstance.batchApplyPlayerChanges).not.toHaveBeenCalled();
+  });
+
+  it('should apply squad changes before building new fixtures for the active squad only', async () => {
+    vi.mocked(scraper.scrapeELTTLTeam).mockResolvedValue({
+      ...scrapedData([
+        scrapedFixture1,
+        scrapedFixture2,
+        { date: 'Jan 29', time: 'Wed 18:45', homeTeam: 'Test Team', awayTeam: 'Opposition C', venue: undefined }
+      ]),
+      players: ['Player A', 'Player B', 'Player D']
+    });
+
+    // Re-read after the squad changes: Player C hidden, Player D created
+    mockDbInstance.getPlayers
+      .mockResolvedValueOnce(mockPlayers)
+      .mockResolvedValueOnce([
+        mockPlayers[0],
+        mockPlayers[1],
+        { ...mockPlayers[2], left_at: 1704067200000 },
+        { id: 'player-4', team_id: mockTeamId, name: 'Player D', created_at: 1704067200000, left_at: null }
+      ]);
+
+    const res = await app.fetch(syncRequest(), { DB: {} as any });
+    const json: any = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.players_added).toBe(1);
+    expect(json.players_left).toBe(1);
+    expect(json.message).toBe('Sync completed: 1 new, 2 unchanged, 1 player joined, 1 player left');
+
+    expect(mockDbInstance.batchApplyPlayerChanges).toHaveBeenCalledWith(mockTeamId, {
+      added: ['Player D'],
+      left: [{ id: 'player-3', name: 'Player C' }],
+      rejoined: []
+    });
+    expect(mockDbInstance.batchApplyPlayerChanges.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDbInstance.batchCreateFixtureWithAvailability.mock.invocationCallOrder[0]
+    );
+    expect(mockDbInstance.batchCreateFixtureWithAvailability).toHaveBeenCalledWith(
+      mockTeamId,
+      '2026-01-29',
+      'Jan 29 Wed 18:45',
+      'Test Team',
+      'Opposition C',
+      undefined,
+      ['player-1', 'player-2', 'player-4']
+    );
+  });
+
+  it('should bring back a hidden player who is listed on ELTTL again', async () => {
+    vi.mocked(scraper.scrapeELTTLTeam).mockResolvedValue(
+      scrapedData([scrapedFixture1, scrapedFixture2])
+    );
+    mockDbInstance.getPlayers.mockResolvedValue([
+      mockPlayers[0],
+      mockPlayers[1],
+      { ...mockPlayers[2], left_at: 1704067200000 }
+    ]);
+
+    const res = await app.fetch(syncRequest(), { DB: {} as any });
+    const json: any = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.players_rejoined).toBe(1);
+    expect(mockDbInstance.batchApplyPlayerChanges).toHaveBeenCalledWith(mockTeamId, {
+      added: [],
+      left: [],
+      rejoined: [{ id: 'player-3', name: 'Player C' }]
+    });
   });
 });

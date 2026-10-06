@@ -14,9 +14,19 @@
 		</div>
 		
 		<div class="flex-1 min-w-0">
-			<h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-1 truncate">
-				{summary.playerName}
-			</h3>
+			<div class="flex items-center gap-2 mb-1 min-w-0">
+				<h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
+					{summary.playerName}
+				</h3>
+				{#if summary.left}
+					<span
+						class="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300"
+						title="No longer in the ELTTL squad"
+					>
+						Left
+					</span>
+				{/if}
+			</div>
 			<div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
 				Selection Rate: <span class="font-semibold text-emerald-600 dark:text-emerald-400">{summary.selectionRate}%</span>
 			</div>

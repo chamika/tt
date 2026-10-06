@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { computeSyncPlan, describeSyncPlan, isEmptyPlan } from './sync';
-import type { FixtureDataCounts, FixtureRow, ScrapedFixture } from './types';
+import { computePlayerPlan, computeSyncPlan, describeSyncPlan, isEmptyPlan } from './sync';
+import type {
+	FixtureDataCounts,
+	FixtureRow,
+	FixtureSyncPlan,
+	Player,
+	ScrapedFixture,
+	SyncPlan,
+	SyncPlanPlayers
+} from './types';
 
 // Mid-season reference date so parseMatchDate puts Jan-Jul fixtures in 2026
 const REFERENCE_DATE = new Date('2026-01-05T12:00:00Z');
@@ -34,6 +42,21 @@ function plan(
 	counts: Record<string, FixtureDataCounts> = {}
 ) {
 	return computeSyncPlan(existing, scrapedFixtures, new Map(Object.entries(counts)), REFERENCE_DATE);
+}
+
+function player(overrides: Partial<Player> & Pick<Player, 'id' | 'name'>): Player {
+	return {
+		team_id: 'team-1',
+		created_at: 1704067200000,
+		left_at: null,
+		...overrides
+	};
+}
+
+const NO_SQUAD_CHANGES: SyncPlanPlayers = { added: [], left: [], rejoined: [] };
+
+function withPlayers(fixturePlan: FixtureSyncPlan, players: Partial<SyncPlanPlayers> = {}): SyncPlan {
+	return { ...fixturePlan, players: { ...NO_SQUAD_CHANGES, ...players } };
 }
 
 describe('computeSyncPlan', () => {
@@ -179,33 +202,96 @@ describe('computeSyncPlan', () => {
 	});
 });
 
+describe('computePlayerPlan', () => {
+	const squad = [player({ id: 'p1', name: 'Alice' }), player({ id: 'p2', name: 'Bob' })];
+
+	it('reports no changes when ELTTL lists the same squad', () => {
+		expect(computePlayerPlan(squad, ['Bob', 'Alice'])).toEqual(NO_SQUAD_CHANGES);
+	});
+
+	it('reports a scraped name with no stored player as added', () => {
+		expect(computePlayerPlan(squad, ['Alice', 'Bob', 'Carol']).added).toEqual(['Carol']);
+	});
+
+	it('reports an active player missing from ELTTL as left', () => {
+		expect(computePlayerPlan(squad, ['Alice']).left).toEqual([{ id: 'p2', name: 'Bob' }]);
+	});
+
+	it('reports a hidden player listed on ELTTL again as rejoined', () => {
+		const result = computePlayerPlan(
+			[...squad, player({ id: 'p3', name: 'Carol', left_at: 1 })],
+			['Alice', 'Bob', 'Carol']
+		);
+
+		expect(result).toEqual({ ...NO_SQUAD_CHANGES, rejoined: [{ id: 'p3', name: 'Carol' }] });
+	});
+
+	it('does not report a hidden player again while they stay off ELTTL', () => {
+		const result = computePlayerPlan(
+			[...squad, player({ id: 'p3', name: 'Carol', left_at: 1 })],
+			['Alice', 'Bob']
+		);
+
+		expect(result).toEqual(NO_SQUAD_CHANGES);
+	});
+
+	it('ignores surrounding whitespace and duplicate scraped names', () => {
+		expect(computePlayerPlan(squad, [' Alice ', 'Bob', 'Dan', 'Dan'])).toEqual({
+			...NO_SQUAD_CHANGES,
+			added: ['Dan']
+		});
+	});
+});
+
 describe('isEmptyPlan', () => {
 	it('is true when nothing would change', () => {
-		expect(isEmptyPlan(plan([fixture({ id: 'f1' })], [scraped()]))).toBe(true);
+		expect(isEmptyPlan(withPlayers(plan([fixture({ id: 'f1' })], [scraped()])))).toBe(true);
 	});
 
 	it('is false when a fixture would be deleted', () => {
-		expect(isEmptyPlan(plan([fixture({ id: 'f1' })], []))).toBe(false);
+		expect(isEmptyPlan(withPlayers(plan([fixture({ id: 'f1' })], [])))).toBe(false);
+	});
+
+	it('is false when only the squad would change', () => {
+		const result = withPlayers(plan([fixture({ id: 'f1' })], [scraped()]), {
+			left: [{ id: 'p1', name: 'Alice' }]
+		});
+
+		expect(isEmptyPlan(result)).toBe(false);
 	});
 });
 
 describe('describeSyncPlan', () => {
 	it('says everything is up to date for an empty plan', () => {
-		const empty = plan([fixture({ id: 'f1' })], [scraped()]);
+		const empty = withPlayers(plan([fixture({ id: 'f1' })], [scraped()]));
 
-		expect(describeSyncPlan(empty, false)).toBe('All fixtures are up to date');
-		expect(describeSyncPlan(empty, true)).toBe('All fixtures are up to date');
+		expect(describeSyncPlan(empty, false)).toBe('Fixtures and squad are up to date');
+		expect(describeSyncPlan(empty, true)).toBe('Fixtures and squad are up to date');
 	});
 
 	it('lists only the categories that have changes', () => {
-		const result = plan([fixture({ id: 'f1' })], []);
+		const result = withPlayers(plan([fixture({ id: 'f1' })], []));
 
 		expect(describeSyncPlan(result, false)).toBe('Sync completed: 1 deleted, 0 unchanged');
 	});
 
 	it('phrases a dry run as pending changes', () => {
-		const result = plan([fixture({ id: 'f1' })], []);
+		const result = withPlayers(plan([fixture({ id: 'f1' })], []));
 
 		expect(describeSyncPlan(result, true)).toBe('Pending changes: 1 deleted, 0 unchanged');
+	});
+
+	it('includes squad changes with player counts', () => {
+		const result = withPlayers(plan([fixture({ id: 'f1' })], [scraped()]), {
+			added: ['Carol'],
+			left: [
+				{ id: 'p1', name: 'Alice' },
+				{ id: 'p2', name: 'Bob' }
+			]
+		});
+
+		expect(describeSyncPlan(result, false)).toBe(
+			'Sync completed: 1 unchanged, 1 player joined, 2 players left'
+		);
 	});
 });

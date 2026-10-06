@@ -1,6 +1,6 @@
 <!-- Dry-run report shown before a fixture sync is applied -->
 <script lang="ts">
-	import { AlertTriangle, Minus, Plus, RefreshCw } from 'lucide-svelte';
+	import { AlertTriangle, Minus, Plus, RefreshCw, UserMinus, UserPlus } from 'lucide-svelte';
 	import type { SyncPlan } from '$lib/types/availability';
 
 	let {
@@ -15,8 +15,12 @@
 		onApply: () => void;
 	} = $props();
 
+	const squadChangeCount = $derived(
+		plan.players.added.length + plan.players.left.length + plan.players.rejoined.length
+	);
+
 	const hasChanges = $derived(
-		plan.new.length > 0 || plan.updated.length > 0 || plan.deleted.length > 0
+		plan.new.length > 0 || plan.updated.length > 0 || plan.deleted.length > 0 || squadChangeCount > 0
 	);
 
 	// Deletions and reschedules both destroy availability and selections, so the
@@ -60,7 +64,7 @@
 
 		{#if !hasChanges}
 			<p class="text-gray-600 dark:text-gray-400 mb-6">
-				Everything is already up to date. ELTTL lists the same
+				Everything is already up to date. ELTTL lists the same squad and the same
 				{plan.unchanged_count} fixture{plan.unchanged_count === 1 ? '' : 's'} you already have.
 			</p>
 			<div class="flex justify-end">
@@ -168,6 +172,55 @@
 												{warning}
 											</span>
 										{/if}
+									</span>
+								</li>
+							{/each}
+						</ul>
+					</section>
+				{/if}
+
+				{#if squadChangeCount > 0}
+					<section>
+						<h4 class="font-medium text-gray-900 dark:text-white mb-2 text-sm">
+							Squad changes
+						</h4>
+						<ul class="space-y-1.5">
+							{#each plan.players.added as name (name)}
+								<li class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+									<UserPlus
+										size={16}
+										class="flex-shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400"
+									/>
+									<span>
+										<span class="font-medium">{name}</span>
+										<span class="text-gray-500 dark:text-gray-400">— joined the team</span>
+									</span>
+								</li>
+							{/each}
+							{#each plan.players.left as player (player.id)}
+								<li class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+									<UserMinus
+										size={16}
+										class="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400"
+									/>
+									<span>
+										<span class="font-medium">{player.name}</span>
+										<span class="text-gray-500 dark:text-gray-400">— left the team</span>
+										<span class="block text-gray-500 dark:text-gray-400 text-xs">
+											Hidden from upcoming fixtures. Past availability and selections are kept.
+										</span>
+									</span>
+								</li>
+							{/each}
+							{#each plan.players.rejoined as player (player.id)}
+								<li class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+									<UserPlus
+										size={16}
+										class="flex-shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400"
+									/>
+									<span>
+										<span class="font-medium">{player.name}</span>
+										<span class="text-gray-500 dark:text-gray-400">— rejoined the team</span>
 									</span>
 								</li>
 							{/each}

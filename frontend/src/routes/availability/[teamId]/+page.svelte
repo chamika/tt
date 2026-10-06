@@ -46,6 +46,20 @@
 	let syncPreview = $state<SyncResponse | null>(null);
 	let syncResult = $state<SyncResponse | null>(null);
 
+	// Players who left the squad are hidden. They still show on past fixtures they took
+	// part in, and on upcoming fixtures only while they remain in the final selection.
+	const activePlayers = $derived(players.filter((p) => !p.left_at));
+
+	function playersFor(fixture: Fixture): Player[] {
+		const selected = finalSelections[fixture.id] ?? [];
+		return players.filter(
+			(p) =>
+				!p.left_at ||
+				selected.includes(p.id) ||
+				(fixture.is_past === 1 && availability[`${fixture.id}_${p.id}`])
+		);
+	}
+
 	// Load team data on mount
 	$effect(() => {
 		loadTeamData();
@@ -219,7 +233,7 @@
 					</div>
 					<div class="flex items-center gap-2">
 						<Users size={18} class="sm:w-5 sm:h-5" />
-						<span>{players.length} players</span>
+						<span>{activePlayers.length} players</span>
 					</div>
 				</div>
 			</div>
@@ -282,7 +296,7 @@
 					{#each futureFixtures as fixture (fixture.id)}
 						<FixtureCard
 							{fixture}
-							{players}
+							players={playersFor(fixture)}
 							{availability}
 							finalSelections={finalSelections[fixture.id] || []}
 							onAvailabilityChange={(playerId, isAvailable) => 
@@ -340,7 +354,7 @@
 					{#each pastFixtures as fixture (fixture.id)}
 						<FixtureCard
 							{fixture}
-							{players}
+							players={playersFor(fixture)}
 							{availability}
 							finalSelections={finalSelections[fixture.id] || []}
 							onAvailabilityChange={pastFixturesEditMode
@@ -374,7 +388,7 @@
 				</h2>
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 					<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-					{#each Array(players.length || 3) as _, i (i)}
+					{#each Array(activePlayers.length || 3) as _, i (i)}
 						<PlayerSummaryCardSkeleton />
 					{/each}
 				</div>
@@ -403,7 +417,7 @@
 				Fixture Management
 			</h2>
 			<p class="text-gray-600 dark:text-gray-400 mb-6">
-				Sync your fixtures with the latest data from ELTTL. This adds new fixtures, updates rescheduled ones, and removes fixtures ELTTL no longer lists.
+				Sync your fixtures and squad with the latest data from ELTTL. This adds new fixtures, updates rescheduled ones, removes fixtures ELTTL no longer lists, and keeps the squad in step with the team page.
 			</p>
 
 			<div class="bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 p-6">
@@ -411,7 +425,7 @@
 					Sync Fixtures from ELTTL
 				</h3>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-					You will see exactly what would change before anything is saved. Rescheduled fixtures have their availability and selections cleared, and fixtures that are no longer on ELTTL are deleted along with their data.
+					You will see exactly what would change before anything is saved. Rescheduled fixtures have their availability and selections cleared, and fixtures that are no longer on ELTTL are deleted along with their data. Players who have left the team are hidden but keep their history, and come back if they rejoin.
 				</p>
 
 				{#if syncResult}
@@ -422,6 +436,15 @@
 							<li>✓ {syncResult.fixtures_updated} fixture(s) updated</li>
 							<li>✓ {syncResult.fixtures_deleted} fixture(s) removed</li>
 							<li>✓ {syncResult.fixtures_unchanged} fixture(s) unchanged</li>
+							{#if syncResult.players_added > 0}
+								<li>✓ {syncResult.players_added} player(s) joined</li>
+							{/if}
+							{#if syncResult.players_left > 0}
+								<li>✓ {syncResult.players_left} player(s) left and hidden</li>
+							{/if}
+							{#if syncResult.players_rejoined > 0}
+								<li>✓ {syncResult.players_rejoined} player(s) rejoined</li>
+							{/if}
 						</ul>
 					</div>
 				{/if}
