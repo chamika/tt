@@ -5,19 +5,10 @@ import { DatabaseService } from './database';
 import { scrapeELTTLTeam } from './scraper';
 import { computeSyncPlan, describeSyncPlan } from './sync';
 import { isValidELTTLUrl, parseMatchDate, isPastDate } from './utils';
+import { log } from './log';
+import tournamentRoutes from './tournament/routes';
 
 const app = new Hono<{ Bindings: Env }>();
-
-// Logging utility
-function log(level: 'info' | 'error' | 'warn', message: string, meta?: Record<string, any>) {
-  const logEntry = {
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    ...meta
-  };
-  console.log(JSON.stringify(logEntry));
-}
 
 // Enable CORS for frontend
 app.use('/*', cors());
@@ -515,5 +506,8 @@ app.get('/api/availability/:teamId/summary', async (c) => {
     }, 500);
   }
 });
+
+// Tournament Brackets
+app.route('/api/tournaments', tournamentRoutes);
 
 export default app;

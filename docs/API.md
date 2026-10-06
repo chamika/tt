@@ -430,6 +430,191 @@ curl -X POST http://localhost:8787/api/availability/550e8400-e29b-41d4-a716-4466
 
 ---
 
+## Tournament Brackets
+
+Club tournaments shared by link: a knockout, or round-robin groups feeding a knockout. The
+worker owns the draw, validates results, moves winners on and works out group standings;
+every endpoint except create returns the full computed **tournament view** (below), so a
+client only renders it.
+
+A tournament is a `draft` until it is started. A draft can be edited and redrawn but takes no
+results; once `in_progress` the draw is locked. It becomes `completed` when the final has a
+result (and goes back to `in_progress` if that result is cleared).
+
+### 8. Create Tournament
+
+**Endpoint**: `POST /api/tournaments`
+
+**Request Body**:
+```json
+{
+  "name": "Club Championship",
+  "format": "groups",
+  "seeding_mode": "handicap",
+  "score_mode": "points",
+  "best_of": 5,
+  "group_count": 2,
+  "advance_per_group": 2,
+  "players": [
+    { "name": "Alice Anderson", "handicap": -6 },
+    { "name": "Bob Brown", "handicap": 4 }
+  ]
+}
+```
+- `format`: `knockout` or `groups` (round-robin groups, then a knockout)
+- `seeding_mode`: `ranking` (seeded by `ranking`, 1 = best; blank rankings are drawn randomly
+  below the ranked players) or `handicap` (seeded by `handicap`, most negative first; required
+  for every player, and every match shows starting scores and the score to play to)
+- `score_mode`: what a result records - `points` (every game's score), `games` (games won) or
+  `winner` (winner only). Group tie-breaks use as much of this as there is.
+- `best_of`: 1, 3, 5 or 7
+- `group_count` (1-16) and `advance_per_group`: groups format only. Fewer players must qualify
+  from each group than are in the smallest group.
+- `players`: 2 to 64, with unique names
+
+**Response**: `201 Created`
+```json
+{
+  "success": true,
+  "id": "6f1c2d3e-...",
+  "redirect": "/tournament/6f1c2d3e-..."
+}
+```
+
+**Error Responses**:
+- `400 Bad Request`: invalid settings or players, with a message saying what to fix
+
+### 9. Get Tournament
+
+**Endpoint**: `GET /api/tournaments/:id`
+
+**Response**: `200 OK` - the tournament view:
+```json
+{
+  "tournament": { "id": "...", "name": "...", "format": "groups", "status": "in_progress", "...": "settings" },
+  "players": [
+    { "id": "...", "name": "Alice Anderson", "ranking": null, "handicap": -6, "seed": 1, "group_index": 0, "manual_group_rank": null }
+  ],
+  "groups": [
+    {
+      "index": 0,
+      "name": "Group A",
+      "player_ids": ["..."],
+      "standings": {
+        "rows": [
+          { "player_id": "...", "position": 1, "played": 3, "won": 3, "lost": 0, "match_points": 6,
+            "games_won": 9, "games_lost": 2, "points_won": 120, "points_lost": 80, "tied": false }
+        ],
+        "complete": true,
+        "unresolved_tie": null
+      }
+    }
+  ],
+  "rounds": [{ "round": 1, "name": "Semi-final", "short_name": "SF" }, { "round": 2, "name": "Final", "short_name": "F" }],
+  "matches": [
+    {
+      "id": "...",
+      "stage": "knockout",
+      "label": "SF1",
+      "round": 1,
+      "round_name": "Semi-final",
+      "player_a_id": "...",
+      "player_b_id": null,
+      "source_a_label": "A1",
+      "source_b_label": "B2",
+      "handicap": null,
+      "status": "pending",
+      "winner_id": null,
+      "games_a": null,
+      "games_b": null,
+      "game_scores": null,
+      "locked": false,
+      "lock_reason": null,
+      "...": "bracket links (next_match_id, next_slot, is_bye, source_a, source_b)"
+    }
+  ],
+  "champion_id": null
+}
+```
+- `matches[].status`: `bye`, `pending` (a player still to be decided), `ready` or `completed`
+- `matches[].handicap`: `{ "start_a", "start_b", "play_to", "warning" }` once both players are
+  known. Ranking tournaments play off scratch (`0`, `0`, `11`). `warning` is set when a starting
+  score reaches the play-to score, which means the handicaps need checking.
+- `matches[].locked` / `lock_reason`: whether, and why, the result can't be entered or changed
+- Group standings: match points (win 2, loss 1), then ITTF tie-breaks among the tied players -
+  head-to-head, games ratio, points ratio - restarting among whoever is still level.
+  `unresolved_tie` lists players the rules can't separate, when it affects who qualifies or
+  where; the group's qualifiers wait until they are ordered (endpoint 14).
+
+**Error Responses**: `404 Not Found`
+
+### 10. Update a Draft
+
+Change the settings or players. The whole draw is made again.
+
+**Endpoint**: `PUT /api/tournaments/:id` - same body as Create. **Response**: the tournament view.
+
+**Error Responses**: `400` invalid settings, `404`, `409` the tournament has started
+
+### 11. Start Tournament
+
+**Endpoint**: `POST /api/tournaments/:id/start` - **Response**: the tournament view.
+
+**Error Responses**: `404`, `409` already started
+
+### 12. Record a Result
+
+Record or correct a match result. Winners move into the next round, and a finished group sends
+its qualifiers into the knockout.
+
+**Endpoint**: `PUT /api/tournaments/:id/matches/:matchId/result`
+
+**Request Body**, by `score_mode`:
+```json
+{ "game_scores": [{ "a": 11, "b": 7 }, { "a": 9, "b": 11 }, { "a": 12, "b": 10 }, { "a": 11, "b": 4 }] }
+{ "games_a": 3, "games_b": 1 }
+{ "winner_id": "player-uuid" }
+```
+In `points` mode every game is checked against the match's handicap: neither player can finish
+below their starting score, the winner reaches the play-to score with a 2-point lead, and from
+deuce the game ends at exactly a 2-point lead. The games must make a finished best-of match.
+
+**Response**: the tournament view.
+
+**Error Responses**:
+- `400`: the score isn't possible, with a message naming the game and the problem
+- `404`: tournament or match not found
+- `409`: the tournament hasn't started, the match is a bye or still waiting for a player, or the
+  result is locked - a knockout result once the next match has a result, a group result once
+  any knockout match has a result
+
+### 13. Clear a Result
+
+**Endpoint**: `DELETE /api/tournaments/:id/matches/:matchId/result` - **Response**: the tournament view.
+
+The winner is taken back out of the next round (or the group's qualifiers out of the
+knockout). Locked in the same way as recording a result.
+
+### 14. Order a Group Tie
+
+Set the order of players the tie-break rules couldn't separate.
+
+**Endpoint**: `PUT /api/tournaments/:id/groups/:groupIndex/order`
+
+**Request Body**:
+```json
+{ "player_ids": ["first-uuid", "second-uuid", "third-uuid"] }
+```
+The list must be exactly the group's `unresolved_tie`. A later change to any of the group's
+results clears the order.
+
+**Response**: the tournament view.
+
+**Error Responses**: `400` not the tied players, `404` group not found, `409` no tie to order
+or the knockout has started
+
+---
+
 ## Data Types
 
 ### Team
@@ -526,8 +711,10 @@ All errors follow this structure:
 
 Standard HTTP status codes are used:
 - `200`: Success
+- `201`: Created
 - `400`: Bad Request (validation error)
 - `404`: Not Found
+- `409`: Conflict (not allowed in the current state, e.g. a result for a tournament that hasn't started)
 - `500`: Internal Server Error
 
 ## Logging
@@ -544,6 +731,10 @@ Logs are accessible via Cloudflare Workers dashboard.
 
 ## Changelog
 
+### v1.2.0 (October 2026)
+- Added Tournament Brackets: `/api/tournaments` endpoints for knockout and group tournaments,
+  seeded by ranking or handicap
+
 ### v1.1.0 (September 2026)
 - Added `POST /api/availability/:teamId/sync`
 - Sync now deletes fixtures that ELTTL no longer lists
@@ -557,5 +748,5 @@ Logs are accessible via Cloudflare Workers dashboard.
 
 ---
 
-**API Version**: 1.1.0  
-**Last Updated**: September 2026
+**API Version**: 1.2.0  
+**Last Updated**: October 2026

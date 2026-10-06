@@ -6,6 +6,12 @@ export default defineConfig({
 	css: {
 		devSourcemap: true
 	},
+	server: {
+		fs: {
+			// Code shared with the worker (e.g. the handicap calculator) lives outside the app root
+			allow: ['../shared']
+		}
+	},
 	build: {
 		sourcemap: true
 	}

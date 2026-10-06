@@ -76,14 +76,23 @@ npm test                        # Runs unit + E2E tests
 - `validation.test.ts` - Business logic validation (18 tests)
 - `database.integration.test.ts` - Database CRUD operations (18 tests)
 - `scraper.test.ts` - ELTTL website scraping (11 tests)
+- `sync.test.ts`, `index.test.ts` - Fixture sync planning and API
+- `test/d1.test.ts` - Real in-memory D1 (Miniflare) harness smoke test
+- `tournament/*.test.ts` - Tournament engine: seeding, knockout, groups, standings, handicap, results, advancement and view
+- `tournament/routes.test.ts` - Tournament API with a mocked repository
+- `tournament/tournament.d1.test.ts` - Tournament API against a real in-memory D1 database, including concurrent writes
 
-**Total: 65 tests**
+**Total: 313 tests**
+
+The `*.d1.test.ts` integration tests use `createTestD1()` from `src/test/d1.ts`, which starts
+Miniflare's in-memory D1 and applies `schema.sql`. They need no running services.
 
 ### Frontend Tests (`frontend/src/`)
 
-- `lib/handicap/scoreCalculator.test.ts` - Handicap calculations (7 tests)
+- `lib/handicap/scoreCalculator.test.ts` - Handicap calculations (10 tests; the calculator itself lives in `shared/handicap/`)
+- `lib/tournament/*.test.ts` - Bracket layout, player list parsing and score formatting
 
-**Total: 7 tests**
+**Total: 36 tests**
 
 ### E2E Tests (`frontend/e2e/`)
 
@@ -91,8 +100,11 @@ npm test                        # Runs unit + E2E tests
   - Validation states (3 tests)
   - Past fixtures read-only mode (2 tests)
   - Player summary statistics (3 tests)
+- `tournament.test.ts` - Tournament Brackets: creating from the form, handicap starts and score validation,
+  group qualification, tie ordering, setup errors, and a phone viewport (7 tests). Each test creates its own
+  tournament through the API, so only the worker needs to be running.
 
-**Total: 8 E2E tests**
+**Total: 23 E2E tests** (including the demo test file)
 
 ## Test Coverage
 
