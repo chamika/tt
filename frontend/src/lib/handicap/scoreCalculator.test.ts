@@ -93,4 +93,30 @@ describe('calculateScores', () => {
             expect(result.output).toContain('Minus v Plus');
         });
     });
+
+    describe('Edge cases', () => {
+        it('should start level and play to 11 when handicaps are equal', () => {
+            for (const h of [-5, 0, 5]) {
+                const result = calculateScores(h, h);
+                expect([result.startingScorePlayer1, result.startingScorePlayer2, result.playToScore]).toEqual([0, 0, 11]);
+            }
+        });
+
+        it('should treat a handicap of 0 as plus against a minus handicap', () => {
+            // H1 = 0, H2 = -3: Minus v Plus, total 3, play to 11 + 3
+            const result = calculateScores(0, -3);
+            expect(result.startingScorePlayer1).toBe(3);
+            expect(result.startingScorePlayer2).toBe(0);
+            expect(result.playToScore).toBe(14);
+            expect(result.output).toContain('Minus v Plus');
+        });
+
+        it('should treat a handicap of 0 as plus against a plus handicap', () => {
+            const result = calculateScores(0, 3);
+            expect(result.startingScorePlayer1).toBe(0);
+            expect(result.startingScorePlayer2).toBe(3);
+            expect(result.playToScore).toBe(11);
+            expect(result.output).toContain('Plus v Plus');
+        });
+    });
 });

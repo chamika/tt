@@ -23,11 +23,22 @@ Track player availability and manage team selections for Edinburgh and Lothians 
 - Dark mode support
 - Automatic past/future fixture handling
 
+### 3. Tournament Brackets ✅
+Run club tournaments from a shareable link.
+
+**Features:**
+- Knockout, or round-robin groups feeding a knockout (quarter-finals, semi-finals, final)
+- Seeding by ranking, or by handicap with starting scores and the play-to score worked out for every match
+- Choose what results record: every game's score, games won, or just the winner
+- Winners move on automatically; group standings use ITTF tie-breaks
+- Review and re-draw a draft before starting; enter results from any phone
+
 ## Documentation
 
 - **[Availability Tracker Guide](./docs/AVAILABILITY_TRACKER.md)** - Complete feature documentation
 - **[API Documentation](./docs/API.md)** - REST API reference
 - **[User Guide](./docs/USER_GUIDE.md)** - Step-by-step usage instructions
+- **[Tournament Brackets Plan](./design/tournament-brackets/Plan.md)** - Design, defaults and manual test checklist
 - **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[TODO List](./design/availability-tracker/TODO.md)** - Implementation progress
 
@@ -40,7 +51,8 @@ tt/
 │   ├── src/
 │   │   ├── routes/    # Page routes
 │   │   │   ├── availability/  # Availability tracker pages
-│   │   │   └── handicap/      # Handicap calculator page
+│   │   │   ├── handicap/      # Handicap calculator page
+│   │   │   └── tournament/    # Tournament brackets pages
 │   │   └── lib/       # Shared components and utilities
 │   └── e2e/           # Playwright E2E tests
 ├── worker/            # Cloudflare Worker API
@@ -48,7 +60,9 @@ tt/
 │       ├── index.ts      # API routes and handlers
 │       ├── database.ts   # D1 database service
 │       ├── scraper.ts    # ELTTL scraper
+│       ├── tournament/   # Tournament engine, storage and API routes
 │       └── *.test.ts     # Unit and integration tests
+├── shared/            # Code used by both (handicap calculator)
 ├── docs/              # Documentation
 └── design/            # Design documents and planning
 ```
@@ -297,6 +311,7 @@ See **[Deployment Guide](./docs/DEPLOYMENT.md#troubleshooting)** for more soluti
 ### Completed ✅
 - Handicap Score Calculator
 - ELTTL Availability Tracker MVP
+- Tournament Brackets
 - Comprehensive test suite
 - Documentation and user guides
 - Production deployment setup

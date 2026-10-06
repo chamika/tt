@@ -12,6 +12,7 @@ Welcome to the ELTTL Availability Tracker! This guide will help you get started 
 6. [Tips and Best Practices](#tips-and-best-practices)
 7. [Troubleshooting](#troubleshooting)
 8. [FAQ](#faq)
+9. [Tournament Brackets](#tournament-brackets)
 
 ---
 
@@ -412,3 +413,48 @@ A: Not yet, but the web version works great on mobile browsers.
 
 **Version**: 1.0.0  
 **Last Updated**: December 2025
+
+---
+
+## Tournament Brackets
+
+Run a club tournament from one link that everyone can open on their phone.
+
+### Setting Up
+
+1. Go to **Tournament Brackets** on the home page and choose **Create a Tournament**
+2. Pick a **format**:
+   - **Knockout** - single elimination from the first match
+   - **Groups → knockout** - round-robin groups, then the top players from each group play a knockout. Choose the number of groups and how many qualify from each; the form shows the knockout this makes (for example "8 qualifiers → quarter-finals")
+3. Pick **seeding**:
+   - **Ranking** - 1 is the best. Leave a ranking blank for unranked players; they are drawn at random below the ranked ones
+   - **Handicap** - every player needs a handicap; lower is stronger (-10 gives points to -5). Every match shows the starting scores and the score to play to, using the same rules as the Handicap Calculator
+4. Pick what **results** record: every game's score (best for tie-breaks), games won, or just the winner
+5. Add players: type them in, **Paste list** (one per line, with an optional ranking or handicap after a comma), or **From a team** to copy names from an availability tracker team
+6. Choose **Create draw**
+
+### Checking the Draw
+
+The new tournament is a **draft**. Check the seeds, groups and bracket, then:
+- **Edit** to change settings or players (the draw is made again)
+- **Re-draw** to shuffle players with equal or blank rankings (or equal handicaps)
+- **Start tournament** to lock the draw and start taking results
+
+Groups are filled in snake order (seeds 1-2-3 across, then back), and byes go to the top seeds.
+
+### Entering Results
+
+Use **Copy link** and share it. On the **Matches** tab, **Up next** lists every match that can be played now:
+- Tap **Enter result**. For game scores, each game starts on the handicap starting scores; the app checks that each game is finished (the play-to score with a 2-point lead) before saving
+- Winners move into the next round straight away, and a group's qualifiers go into the knockout as soon as the group is finished
+- To fix a mistake, open the match and edit or clear the result. A knockout result is locked once the next match has a result, and group results are locked once the knockout has started
+
+### Group Standings
+
+Players score 2 points for a win and 1 for a loss. Players level on points are separated by their results against each other: head-to-head, then games won/lost, then points won/lost, as far as the chosen result detail allows. If the rules can't separate players and it matters for who qualifies, the **Groups** tab asks you to put them in order.
+
+### Tips
+
+- Results from other phones appear when you come back to the page, or tap the refresh button
+- A ⚠ warning on a match means the handicaps give a player a starting score at or past the finishing score - check the handicaps before starting
+

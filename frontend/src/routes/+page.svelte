@@ -32,11 +32,10 @@
 
 		<ToolCard
 			title="Tournament Brackets"
-			description="Generate single or double elimination brackets for your local club tournaments."
+			description="Run knockout or group-stage club tournaments, seeded by ranking or by handicap with starting scores for every match."
 			icon={Trophy}
-			href="/"
-			disabled={true}
-			badge="Planned"
+			href="/tournament"
+			badge="New"
 		/>
 	</div>
 </div>
