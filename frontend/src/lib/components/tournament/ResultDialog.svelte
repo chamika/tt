@@ -1,8 +1,17 @@
 <!-- Enter, correct or clear a match result; the fields follow the tournament's score mode -->
 <script lang="ts">
 	import { AlertTriangle, Loader2, Minus, Plus } from 'lucide-svelte';
-	import type { GameScore, Match, ResultInput, TournamentView } from '$lib/types/tournament';
-	import { describeHandicap, gamesToWin, gamesWon, initialGames } from '$lib/tournament/scores';
+	import type { Match, ResultInput, TournamentView } from '$lib/types/tournament';
+	import {
+		checkGames,
+		describeHandicap,
+		gamesToWin,
+		initialGames,
+		otherSideAfterTyping,
+		rowsWanted,
+		rulesFor,
+		type GameEntry
+	} from '$lib/tournament/scores';
 
 	let {
 		match,
@@ -28,19 +37,57 @@
 	const nameB = playersById.get(match.player_b_id ?? '')?.name ?? 'Player B';
 	const readOnly = match.locked;
 
-	let games = $state<GameScore[]>(initialGames(match, bestOf));
+	const rules = rulesFor(match);
+	const start = { a: rules.start_a, b: rules.start_b };
+
+	let games = $state<GameEntry[]>(initialGames(match, bestOf));
 	let gamesA = $state<number | null>(match.games_a);
 	let gamesB = $state<number | null>(match.games_b);
 	let winnerId = $state<string | null>(match.winner_id);
 
-	const tally = $derived(gamesWon(games, match.handicap?.play_to ?? 11));
+	// Boxes someone typed in. Only the others are filled in for them, and a stored
+	// result being corrected counts as typed, so nothing it says is overwritten
+	const correcting = (match.game_scores?.length ?? 0) > 0;
+	let typed = $state(games.map(() => ({ a: correcting, b: correcting })));
+	// The game being typed in; what's wrong with it waits until the person moves on
+	let activeRow = $state<number | null>(null);
+
+	const checkNow = () => checkGames(games, bestOf, rules, { a: nameA, b: nameB });
+	const check = $derived(checkNow());
+	const finished = $derived(check.decidedAt !== null && check.problems.every((p) => p === null));
+
+	function enter(i: number, side: 'a' | 'b', e: Event) {
+		const raw = (e.currentTarget as HTMLInputElement).valueAsNumber;
+		const value = Number.isNaN(raw) ? null : raw;
+		const other = side === 'a' ? 'b' : 'a';
+		games[i][side] = value;
+		typed[i][side] = true;
+		// With a handicap warning the play-to score can't be relied on, so nothing is assumed
+		if (!typed[i][other] && !rules.warning) {
+			games[i][other] = otherSideAfterTyping(value, start[other], rules.play_to);
+		}
+		settleRows();
+	}
+
+	/**
+	 * Add the next game while the match is open; drop blank games after it's won.
+	 * This checks afresh: reading `check` here, straight after changing the games,
+	 * left the derived stale for later edits (Svelte 5.45)
+	 */
+	function settleRows() {
+		const wanted = rowsWanted(checkNow(), bestOf, (i) => !typed[i].a && !typed[i].b);
+		while (games.length > wanted) removeGame();
+		while (games.length < wanted) addGame();
+	}
 
 	function addGame() {
-		games.push({ a: match.handicap?.start_a ?? 0, b: match.handicap?.start_b ?? 0 });
+		games.push({ ...start });
+		typed.push({ a: false, b: false });
 	}
 
 	function removeGame() {
 		games.pop();
+		typed.pop();
 	}
 
 	function save() {
@@ -57,18 +104,50 @@
 		if (!saving) onCancel();
 	}
 
+	// Fields open on the handicap start score; a tap would put the caret mid-number, so take the whole value
+	function selectAll(e: FocusEvent) {
+		const input = e.currentTarget as HTMLInputElement;
+		requestAnimationFrame(() => input.select());
+	}
+
+	// The visible area above the on-screen keyboard. iOS overlays the keyboard on
+	// fixed elements instead of resizing them, so the dialog follows this instead
+	let viewport = $state<{ top: number; height: number } | null>(null);
+	$effect(() => {
+		const vv = window.visualViewport;
+		if (!vv) return;
+		const update = () => (viewport = { top: vv.offsetTop, height: vv.height });
+		update();
+		vv.addEventListener('resize', update);
+		vv.addEventListener('scroll', update);
+		return () => {
+			vv.removeEventListener('resize', update);
+			vv.removeEventListener('scroll', update);
+		};
+	});
+
+	// Keep the page behind still while the dialog scrolls on a phone
+	$effect(() => {
+		const previous = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = previous;
+		};
+	});
+
 	const inputClass =
-		'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white text-center tabular-nums disabled:opacity-60';
+		'w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white text-center tabular-nums disabled:opacity-60';
 </script>
 
 <div
-	class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+	class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center sm:p-4 z-50"
+	style={viewport ? `top: ${viewport.top}px; height: ${viewport.height}px; bottom: auto` : undefined}
 	role="presentation"
 	onclick={close}
 	onkeydown={(e) => e.key === 'Escape' && close()}
 >
 	<div
-		class="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col p-5 sm:p-6"
+		class="bg-white dark:bg-slate-800 rounded-t-2xl sm:rounded-2xl max-w-md w-full max-h-[calc(100%-1.5rem)] flex flex-col p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="result-dialog-title"
@@ -99,118 +178,143 @@
 		{/if}
 
 		<form
-			class="mt-4 flex-1 overflow-y-auto -mx-1 px-1"
+			class="mt-4 flex-1 min-h-0 flex flex-col"
 			onsubmit={(e) => {
 				e.preventDefault();
 				save();
 			}}
 		>
-			{#if mode === 'points'}
-				<div class="grid grid-cols-[4rem_1fr_1fr] gap-2 items-center text-sm">
-					<span></span>
-					<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameA}</span>
-					<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameB}</span>
-					{#each games as game, i (i)}
-						<label for="game-{i}-a" class="text-gray-500 dark:text-gray-400">Game {i + 1}</label>
-						<input
-							id="game-{i}-a"
-							type="number"
-							inputmode="numeric"
-							min="0"
-							aria-label="Game {i + 1} {nameA}"
-							bind:value={game.a}
-							disabled={readOnly || saving}
-							class={inputClass}
-						/>
-						<input
-							type="number"
-							inputmode="numeric"
-							min="0"
-							aria-label="Game {i + 1} {nameB}"
-							bind:value={game.b}
-							disabled={readOnly || saving}
-							class={inputClass}
-						/>
-					{/each}
-				</div>
-				<div class="mt-3 flex items-center justify-between text-sm">
-					<span class="text-gray-600 dark:text-gray-400 tabular-nums">Games {tally.a}–{tally.b}</span>
-					{#if !readOnly}
-						<div class="flex gap-2">
-							{#if games.length > 1}
-								<button
-									type="button"
-									onclick={removeGame}
-									aria-label="Remove a game"
-									class="flex items-center gap-1 px-2 py-1 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+			<div class="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-1 px-1 pb-1">
+				{#if mode === 'points'}
+					<div class="grid grid-cols-[4rem_1fr_1fr] gap-2 items-center text-sm">
+						<span></span>
+						<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameA}</span>
+						<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameB}</span>
+						{#each games as game, i (i)}
+							{@const problem =
+								(typed[i].a || typed[i].b) && activeRow !== i && !readOnly ? check.problems[i] : null}
+							<label for="game-{i}-a" class="text-gray-500 dark:text-gray-400">Game {i + 1}</label>
+							{#each [['a', nameA], ['b', nameB]] as const as [side, name] (side)}
+								<input
+									id={side === 'a' ? `game-${i}-a` : undefined}
+									type="number"
+									inputmode="numeric"
+									min="0"
+									aria-label="Game {i + 1} {name}"
+									aria-invalid={problem ? 'true' : undefined}
+									aria-describedby={problem ? `game-${i}-problem` : undefined}
+									value={game[side]}
+									oninput={(e) => enter(i, side, e)}
+									onfocus={(e) => ((activeRow = i), selectAll(e))}
+									onblur={() => (activeRow = null)}
+									disabled={readOnly || saving}
+									class="{inputClass} {problem ? 'border-red-400 dark:border-red-500' : ''}"
+								/>
+							{/each}
+							{#if problem}
+								<p
+									id="game-{i}-problem"
+									class="col-span-3 -mt-1 text-xs text-red-700 dark:text-red-400"
+									data-testid="game-problem"
 								>
-									<Minus size={14} /> Game
-								</button>
+									{problem}
+								</p>
 							{/if}
-							{#if games.length < bestOf}
-								<button
-									type="button"
-									onclick={addGame}
-									aria-label="Add a game"
-									class="flex items-center gap-1 px-2 py-1 rounded-md text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
-								>
-									<Plus size={14} /> Game
-								</button>
+						{/each}
+					</div>
+					<div class="mt-3 flex items-center justify-between text-sm">
+						<span class="tabular-nums" data-testid="match-tally">
+							{#if finished}
+								<span class="font-semibold text-emerald-700 dark:text-emerald-400">
+									{check.won.a > check.won.b ? nameA : nameB} wins {Math.max(check.won.a, check.won.b)}–{Math.min(
+										check.won.a,
+										check.won.b
+									)}
+								</span>
+							{:else}
+								<span class="text-gray-600 dark:text-gray-400">
+									Games {check.won.a}–{check.won.b} · first to {gamesToWin(bestOf)}
+								</span>
 							{/if}
-						</div>
-					{/if}
-				</div>
-			{:else if mode === 'games'}
-				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-					Games won (first to {gamesToWin(bestOf)})
-				</p>
-				<div class="grid grid-cols-2 gap-3">
-					<label class="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-						<span class="block truncate">{nameA}</span>
-						<input type="number" inputmode="numeric" min="0" bind:value={gamesA} disabled={readOnly || saving} class={inputClass} />
-					</label>
-					<label class="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-						<span class="block truncate">{nameB}</span>
-						<input type="number" inputmode="numeric" min="0" bind:value={gamesB} disabled={readOnly || saving} class={inputClass} />
-					</label>
-				</div>
-			{:else}
-				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Who won?</p>
-				<div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Winner">
-					{#each [[match.player_a_id, nameA], [match.player_b_id, nameB]] as [id, name] (id)}
-						<button
-							type="button"
-							role="radio"
-							aria-checked={winnerId === id}
-							disabled={readOnly || saving}
-							onclick={() => (winnerId = id)}
-							class="px-3 py-3 rounded-lg border text-sm font-medium truncate transition-colors {winnerId === id
-								? 'border-emerald-600 bg-emerald-50 text-emerald-800 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-200'
-								: 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700'}"
-						>
-							{name}
-						</button>
-					{/each}
-				</div>
-			{/if}
+						</span>
+						{#if !readOnly}
+							<div class="flex gap-2">
+								{#if games.length > 1}
+									<button
+										type="button"
+										onclick={removeGame}
+										aria-label="Remove a game"
+										class="flex items-center gap-1 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+									>
+										<Minus size={14} /> Game
+									</button>
+								{/if}
+								{#if games.length < bestOf}
+									<button
+										type="button"
+										onclick={addGame}
+										aria-label="Add a game"
+										class="flex items-center gap-1 px-3 py-2 rounded-md text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
+									>
+										<Plus size={14} /> Game
+									</button>
+								{/if}
+							</div>
+						{/if}
+					</div>
+				{:else if mode === 'games'}
+					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+						Games won (first to {gamesToWin(bestOf)})
+					</p>
+					<div class="grid grid-cols-2 gap-3">
+						<label class="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+							<span class="block truncate">{nameA}</span>
+							<input type="number" inputmode="numeric" min="0" bind:value={gamesA} onfocus={selectAll} disabled={readOnly || saving} class={inputClass} />
+						</label>
+						<label class="space-y-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+							<span class="block truncate">{nameB}</span>
+							<input type="number" inputmode="numeric" min="0" bind:value={gamesB} onfocus={selectAll} disabled={readOnly || saving} class={inputClass} />
+						</label>
+					</div>
+				{:else}
+					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Who won?</p>
+					<div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Winner">
+						{#each [[match.player_a_id, nameA], [match.player_b_id, nameB]] as [id, name] (id)}
+							<button
+								type="button"
+								role="radio"
+								aria-checked={winnerId === id}
+								disabled={readOnly || saving}
+								onclick={() => (winnerId = id)}
+								class="px-3 py-3 rounded-lg border text-sm font-medium truncate transition-colors {winnerId === id
+									? 'border-emerald-600 bg-emerald-50 text-emerald-800 dark:border-emerald-400 dark:bg-emerald-900/30 dark:text-emerald-200'
+									: 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:text-gray-300 dark:hover:bg-slate-700'}"
+							>
+								{name}
+							</button>
+						{/each}
+					</div>
+				{/if}
 
-			{#if readOnly && match.lock_reason}
-				<p class="mt-4 text-sm text-gray-600 dark:text-gray-400">{match.lock_reason}.</p>
-			{/if}
+				{#if readOnly && match.lock_reason}
+					<p class="mt-4 text-sm text-gray-600 dark:text-gray-400">{match.lock_reason}.</p>
+				{/if}
 
-			{#if error}
-				<div class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-lg" role="alert">
-					<p class="text-sm text-red-700 dark:text-red-400">{error}</p>
-				</div>
-			{/if}
+				{#if error}
+					<div class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/30 rounded-lg" role="alert">
+						<p class="text-sm text-red-700 dark:text-red-400">{error}</p>
+					</div>
+				{/if}
 
-			<div class="mt-6 flex flex-wrap items-center justify-end gap-2">
+			</div>
+
+			<div class="pt-4 mt-2 border-t border-gray-100 dark:border-slate-700 flex flex-wrap items-center justify-end gap-2">
 				{#if match.status === 'completed' && !readOnly}
 					<button
 						type="button"
 						onclick={onClear}
 						disabled={saving}
-						class="mr-auto px-3 py-2 text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
+						class="mr-auto px-3 py-2.5 text-sm text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50"
 					>
 						Clear result
 					</button>
@@ -219,15 +323,15 @@
 					type="button"
 					onclick={close}
 					disabled={saving}
-					class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg disabled:opacity-50"
+					class="px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700 rounded-lg disabled:opacity-50"
 				>
 					{readOnly ? 'Close' : 'Cancel'}
 				</button>
 				{#if !readOnly}
 					<button
 						type="submit"
-						disabled={saving || (mode === 'winner' && !winnerId)}
-						class="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+						disabled={saving || (mode === 'winner' && !winnerId) || (mode === 'points' && !finished)}
+						class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{#if saving}<Loader2 size={16} class="animate-spin" />{/if}
 						Save result

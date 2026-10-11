@@ -445,7 +445,10 @@ Groups are filled in snake order (seeds 1-2-3 across, then back), and byes go to
 ### Entering Results
 
 Use **Copy link** and share it. On the **Matches** tab, **Up next** lists every match that can be played now:
-- Tap **Enter result**. For game scores, each game starts on the handicap starting scores; the app checks that each game is finished (the play-to score with a 2-point lead) before saving
+- Tap **Enter result**. For game scores, each game starts on the handicap starting scores
+- Usually you only type the loser's score: a score below the play-to score fills in the winner's (11 against 7, 12 against 10). A score at or above play-to could belong to either player, so type the other score yourself
+- Each game is checked as you go (the play-to score with a 2-point lead), the next game appears while the match is still open, and **Save result** is ready once someone has won
+- **Show matches for** at the top of the tab lists just one player's matches, and this phone remembers the choice
 - Winners move into the next round straight away, and a group's qualifiers go into the knockout as soon as the group is finished
 - To fix a mistake, open the match and edit or clear the result. A knockout result is locked once the next match has a result, and group results are locked once the knockout has started
 

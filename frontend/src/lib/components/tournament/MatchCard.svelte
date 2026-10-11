@@ -131,7 +131,7 @@
 	{#if canOpen}
 		<button
 			onclick={() => onOpen?.(match)}
-			class="mt-3 w-full py-2 text-sm font-medium rounded-lg transition-colors {match.status === 'ready'
+			class="mt-3 w-full py-2.5 text-sm font-medium rounded-lg transition-colors {match.status === 'ready'
 				? 'bg-emerald-600 hover:bg-emerald-700 text-white'
 				: 'bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-200'}"
 		>

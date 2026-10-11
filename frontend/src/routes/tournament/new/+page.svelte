@@ -43,7 +43,7 @@
 	</a>
 
 	<div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
-		<div class="p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
+		<div class="p-4 sm:p-6 border-b border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50">
 			<div class="flex items-center gap-3">
 				<div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
 					<Trophy size={24} />
@@ -55,7 +55,7 @@
 			</div>
 		</div>
 
-		<div class="p-6">
+		<div class="p-4 sm:p-6">
 			<TournamentForm
 				initialSettings={defaults}
 				initialRows={emptyRows}

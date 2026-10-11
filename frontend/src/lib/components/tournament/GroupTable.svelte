@@ -63,19 +63,20 @@
 				<tr class="text-left">
 					<th class="pl-4 pr-2 py-2 font-medium w-8">#</th>
 					<th class="px-2 py-2 font-medium">Player</th>
-					<th class="px-2 py-2 font-medium text-center" title="Played">P</th>
+					<!-- Played (W + L) and the points tie-break don't fit a phone; the rest does -->
+					<th class="hidden sm:table-cell px-2 py-2 font-medium text-center" title="Played">P</th>
 					<th class="px-2 py-2 font-medium text-center" title="Won">W</th>
 					<th class="px-2 py-2 font-medium text-center" title="Lost">L</th>
 					<th class="px-2 py-2 font-medium text-center" title="Match points: 2 for a win, 1 for a loss">Pts</th>
 					{#if mode !== 'winner'}
-						<th class="px-2 py-2 font-medium text-center">Games</th>
+						<th class="px-2 pr-4 sm:pr-2 py-2 font-medium text-center">Games</th>
 					{/if}
 					{#if mode === 'points'}
-						<th class="px-2 pr-4 py-2 font-medium text-center">Points</th>
+						<th class="hidden sm:table-cell px-2 pr-4 py-2 font-medium text-center">Points</th>
 					{/if}
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="text-gray-700 dark:text-gray-300">
 				{#each standings.rows as row (row.player_id)}
 					{@const qualifies = standings.complete && !row.tied && row.position <= advance}
 					<tr
@@ -96,15 +97,15 @@
 								{/if}
 							</div>
 						</td>
-						<td class="px-2 py-2 text-center tabular-nums">{row.played}</td>
+						<td class="hidden sm:table-cell px-2 py-2 text-center tabular-nums">{row.played}</td>
 						<td class="px-2 py-2 text-center tabular-nums">{row.won}</td>
 						<td class="px-2 py-2 text-center tabular-nums">{row.lost}</td>
-						<td class="px-2 py-2 text-center tabular-nums font-semibold">{row.match_points}</td>
+						<td class="px-2 py-2 text-center tabular-nums font-semibold text-gray-900 dark:text-white">{row.match_points}</td>
 						{#if mode !== 'winner'}
-							<td class="px-2 py-2 text-center tabular-nums whitespace-nowrap">{row.games_won}–{row.games_lost}</td>
+							<td class="px-2 pr-4 sm:pr-2 py-2 text-center tabular-nums whitespace-nowrap">{row.games_won}–{row.games_lost}</td>
 						{/if}
 						{#if mode === 'points'}
-							<td class="px-2 pr-4 py-2 text-center tabular-nums whitespace-nowrap">{row.points_won}–{row.points_lost}</td>
+							<td class="hidden sm:table-cell px-2 pr-4 py-2 text-center tabular-nums whitespace-nowrap">{row.points_won}–{row.points_lost}</td>
 						{/if}
 					</tr>
 				{/each}
@@ -131,7 +132,7 @@
 							onclick={() => move(i, -1)}
 							disabled={i === 0 || saving}
 							aria-label="Move {nameOf(id)} up"
-							class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30"
+							class="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30"
 						>
 							<ChevronUp size={16} />
 						</button>
@@ -140,7 +141,7 @@
 							onclick={() => move(i, 1)}
 							disabled={i === order.length - 1 || saving}
 							aria-label="Move {nameOf(id)} down"
-							class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30"
+							class="p-2 rounded hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-30"
 						>
 							<ChevronDown size={16} />
 						</button>
