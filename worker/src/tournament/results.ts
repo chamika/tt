@@ -1,3 +1,4 @@
+import { gameProblem } from '../../../shared/tournament/gameRules';
 import { conflict, invalid } from './errors';
 import type { GameScore, Match, MatchHandicap, MatchResult, ResultInput, Tournament } from './types';
 
@@ -15,39 +16,8 @@ function validateGame(
   handicap: MatchHandicap,
   names: { a: string; b: string }
 ): void {
-  const label = `Game ${number}`;
-
-  if (game.a < handicap.start_a) {
-    throw invalid(`${label}: ${names.a} starts on ${handicap.start_a}, so can't finish on ${game.a}`);
-  }
-  if (game.b < handicap.start_b) {
-    throw invalid(`${label}: ${names.b} starts on ${handicap.start_b}, so can't finish on ${game.b}`);
-  }
-  if (game.a === game.b) {
-    throw invalid(`${label} can't end level`);
-  }
-
-  // When the handicaps put a player at or past the finishing score there is no
-  // sensible score to check against; the match card already warns about it
-  if (handicap.warning) return;
-
-  const { play_to } = handicap;
-  const winner = Math.max(game.a, game.b);
-  const loser = Math.min(game.a, game.b);
-  const score = `${game.a}-${game.b}`;
-
-  if (winner < play_to) {
-    throw invalid(`${label}: games are played to ${play_to}, so ${score} isn't finished`);
-  }
-  if (winner - loser < 2) {
-    throw invalid(`${label}: a game must be won by 2 clear points, so ${score} isn't finished`);
-  }
-  if (loser <= play_to - 2 && winner !== play_to) {
-    throw invalid(`${label}: the game ends when someone reaches ${play_to}, so ${score} isn't possible`);
-  }
-  if (loser >= play_to - 1 && winner !== loser + 2) {
-    throw invalid(`${label}: from ${play_to - 1}-all the game ends at a 2-point lead, so ${score} isn't possible`);
-  }
+  const problem = gameProblem(game, number, handicap, names);
+  if (problem) throw invalid(problem);
 }
 
 /**
