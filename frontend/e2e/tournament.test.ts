@@ -124,8 +124,9 @@ test.describe('Tournament Brackets', () => {
 		const dialog = page.getByRole('dialog');
 		await dialog.getByLabel('Game 1 H-6').fill('17');
 		await dialog.getByLabel('Game 2 H-6').fill('18');
-		await dialog.getByRole('button', { name: 'Save result' }).click();
-		await expect(dialog.getByRole('alert')).toHaveText("Game 1: a game must be won by 2 clear points, so 17-16 isn't finished");
+		// Checked as soon as game 1 is left, in the server's words, and Save waits for a finished match
+		await expect(dialog.getByTestId('game-problem')).toHaveText("Game 1: a game must be won by 2 clear points, so 17-16 isn't finished");
+		await expect(dialog.getByRole('button', { name: 'Save result' })).toBeDisabled();
 		await dialog.getByRole('button', { name: 'Cancel' }).click();
 
 		await finishGroups(request, id);
@@ -144,6 +145,48 @@ test.describe('Tournament Brackets', () => {
 		await dialog.getByRole('button', { name: 'Save result' }).click();
 		await expect(dialog).toBeHidden();
 		await expect(card(page, 'Final')).toContainText('H-6');
+	});
+
+	test('fills in the winner’s score from the loser’s and adds games as the match goes on', async ({ page, request }) => {
+		const id = await createTournament(request, {
+			name: 'E2E Score Entry',
+			format: 'knockout',
+			seeding_mode: 'ranking',
+			score_mode: 'points',
+			best_of: 5,
+			players: ranked(['Ann', 'Bob'])
+		});
+
+		await page.goto(`/tournament/${id}`, { waitUntil: 'networkidle' });
+		await card(page, 'Final').getByRole('button', { name: 'Enter result' }).click();
+		const dialog = page.getByRole('dialog');
+
+		// Key by key, as on a phone: the first digit of "13" is briefly a finished game too
+		async function typeScore(label: string, score: string) {
+			const field = dialog.getByLabel(label);
+			await field.click();
+			await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+			await field.pressSequentially(score);
+		}
+
+		await typeScore('Game 1 Bob', '7');
+		await expect(dialog.getByLabel('Game 1 Ann')).toHaveValue('11');
+		await typeScore('Game 2 Ann', '10');
+		await expect(dialog.getByLabel('Game 2 Bob')).toHaveValue('12');
+		await typeScore('Game 3 Bob', '9');
+		await expect(dialog.getByTestId('match-tally')).toHaveText('Games 2–1 · first to 3');
+
+		// 2-1 needs a fourth game, which appears on its own. 13 could be either player's
+		// (15-13 or 13-11), so Ann's score isn't guessed
+		await typeScore('Game 4 Bob', '13');
+		await expect(dialog.getByLabel('Game 4 Ann')).toHaveValue('0');
+		await typeScore('Game 4 Ann', '15');
+		await expect(dialog.getByTestId('match-tally')).toHaveText('Ann wins 3–1');
+		await expect(dialog.getByLabel('Game 5 Ann')).toHaveCount(0);
+
+		await dialog.getByRole('button', { name: 'Save result' }).click();
+		await expect(dialog).toBeHidden();
+		await expect(card(page, 'Final')).toContainText('11-7, 10-12, 11-9, 15-13');
 	});
 
 	test('asks the organiser to order a tie the rules cannot break', async ({ page, request }) => {

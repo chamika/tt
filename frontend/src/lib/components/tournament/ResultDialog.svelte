@@ -1,8 +1,17 @@
 <!-- Enter, correct or clear a match result; the fields follow the tournament's score mode -->
 <script lang="ts">
 	import { AlertTriangle, Loader2, Minus, Plus } from 'lucide-svelte';
-	import type { GameScore, Match, ResultInput, TournamentView } from '$lib/types/tournament';
-	import { describeHandicap, gamesToWin, gamesWon, initialGames } from '$lib/tournament/scores';
+	import type { Match, ResultInput, TournamentView } from '$lib/types/tournament';
+	import {
+		checkGames,
+		describeHandicap,
+		gamesToWin,
+		initialGames,
+		otherSideAfterTyping,
+		rowsWanted,
+		rulesFor,
+		type GameEntry
+	} from '$lib/tournament/scores';
 
 	let {
 		match,
@@ -28,19 +37,57 @@
 	const nameB = playersById.get(match.player_b_id ?? '')?.name ?? 'Player B';
 	const readOnly = match.locked;
 
-	let games = $state<GameScore[]>(initialGames(match, bestOf));
+	const rules = rulesFor(match);
+	const start = { a: rules.start_a, b: rules.start_b };
+
+	let games = $state<GameEntry[]>(initialGames(match, bestOf));
 	let gamesA = $state<number | null>(match.games_a);
 	let gamesB = $state<number | null>(match.games_b);
 	let winnerId = $state<string | null>(match.winner_id);
 
-	const tally = $derived(gamesWon(games, match.handicap?.play_to ?? 11));
+	// Boxes someone typed in. Only the others are filled in for them, and a stored
+	// result being corrected counts as typed, so nothing it says is overwritten
+	const correcting = (match.game_scores?.length ?? 0) > 0;
+	let typed = $state(games.map(() => ({ a: correcting, b: correcting })));
+	// The game being typed in; what's wrong with it waits until the person moves on
+	let activeRow = $state<number | null>(null);
+
+	const checkNow = () => checkGames(games, bestOf, rules, { a: nameA, b: nameB });
+	const check = $derived(checkNow());
+	const finished = $derived(check.decidedAt !== null && check.problems.every((p) => p === null));
+
+	function enter(i: number, side: 'a' | 'b', e: Event) {
+		const raw = (e.currentTarget as HTMLInputElement).valueAsNumber;
+		const value = Number.isNaN(raw) ? null : raw;
+		const other = side === 'a' ? 'b' : 'a';
+		games[i][side] = value;
+		typed[i][side] = true;
+		// With a handicap warning the play-to score can't be relied on, so nothing is assumed
+		if (!typed[i][other] && !rules.warning) {
+			games[i][other] = otherSideAfterTyping(value, start[other], rules.play_to);
+		}
+		settleRows();
+	}
+
+	/**
+	 * Add the next game while the match is open; drop blank games after it's won.
+	 * This checks afresh: reading `check` here, straight after changing the games,
+	 * left the derived stale for later edits (Svelte 5.45)
+	 */
+	function settleRows() {
+		const wanted = rowsWanted(checkNow(), bestOf, (i) => !typed[i].a && !typed[i].b);
+		while (games.length > wanted) removeGame();
+		while (games.length < wanted) addGame();
+	}
 
 	function addGame() {
-		games.push({ a: match.handicap?.start_a ?? 0, b: match.handicap?.start_b ?? 0 });
+		games.push({ ...start });
+		typed.push({ a: false, b: false });
 	}
 
 	function removeGame() {
 		games.pop();
+		typed.pop();
 	}
 
 	function save() {
@@ -144,32 +191,52 @@
 						<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameA}</span>
 						<span class="text-center font-medium text-gray-700 dark:text-gray-300 truncate">{nameB}</span>
 						{#each games as game, i (i)}
+							{@const problem =
+								(typed[i].a || typed[i].b) && activeRow !== i && !readOnly ? check.problems[i] : null}
 							<label for="game-{i}-a" class="text-gray-500 dark:text-gray-400">Game {i + 1}</label>
-							<input
-								id="game-{i}-a"
-								type="number"
-								inputmode="numeric"
-								min="0"
-								aria-label="Game {i + 1} {nameA}"
-								bind:value={game.a}
-								onfocus={selectAll}
-								disabled={readOnly || saving}
-								class={inputClass}
-							/>
-							<input
-								type="number"
-								inputmode="numeric"
-								min="0"
-								aria-label="Game {i + 1} {nameB}"
-								bind:value={game.b}
-								onfocus={selectAll}
-								disabled={readOnly || saving}
-								class={inputClass}
-							/>
+							{#each [['a', nameA], ['b', nameB]] as const as [side, name] (side)}
+								<input
+									id={side === 'a' ? `game-${i}-a` : undefined}
+									type="number"
+									inputmode="numeric"
+									min="0"
+									aria-label="Game {i + 1} {name}"
+									aria-invalid={problem ? 'true' : undefined}
+									aria-describedby={problem ? `game-${i}-problem` : undefined}
+									value={game[side]}
+									oninput={(e) => enter(i, side, e)}
+									onfocus={(e) => ((activeRow = i), selectAll(e))}
+									onblur={() => (activeRow = null)}
+									disabled={readOnly || saving}
+									class="{inputClass} {problem ? 'border-red-400 dark:border-red-500' : ''}"
+								/>
+							{/each}
+							{#if problem}
+								<p
+									id="game-{i}-problem"
+									class="col-span-3 -mt-1 text-xs text-red-700 dark:text-red-400"
+									data-testid="game-problem"
+								>
+									{problem}
+								</p>
+							{/if}
 						{/each}
 					</div>
 					<div class="mt-3 flex items-center justify-between text-sm">
-						<span class="text-gray-600 dark:text-gray-400 tabular-nums">Games {tally.a}–{tally.b}</span>
+						<span class="tabular-nums" data-testid="match-tally">
+							{#if finished}
+								<span class="font-semibold text-emerald-700 dark:text-emerald-400">
+									{check.won.a > check.won.b ? nameA : nameB} wins {Math.max(check.won.a, check.won.b)}–{Math.min(
+										check.won.a,
+										check.won.b
+									)}
+								</span>
+							{:else}
+								<span class="text-gray-600 dark:text-gray-400">
+									Games {check.won.a}–{check.won.b} · first to {gamesToWin(bestOf)}
+								</span>
+							{/if}
+						</span>
 						{#if !readOnly}
 							<div class="flex gap-2">
 								{#if games.length > 1}
@@ -263,7 +330,7 @@
 				{#if !readOnly}
 					<button
 						type="submit"
-						disabled={saving || (mode === 'winner' && !winnerId)}
+						disabled={saving || (mode === 'winner' && !winnerId) || (mode === 'points' && !finished)}
 						class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{#if saving}<Loader2 size={16} class="animate-spin" />{/if}
