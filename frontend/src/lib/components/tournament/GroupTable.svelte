@@ -76,7 +76,7 @@
 					{/if}
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="text-gray-700 dark:text-gray-300">
 				{#each standings.rows as row (row.player_id)}
 					{@const qualifies = standings.complete && !row.tied && row.position <= advance}
 					<tr
@@ -100,7 +100,7 @@
 						<td class="hidden sm:table-cell px-2 py-2 text-center tabular-nums">{row.played}</td>
 						<td class="px-2 py-2 text-center tabular-nums">{row.won}</td>
 						<td class="px-2 py-2 text-center tabular-nums">{row.lost}</td>
-						<td class="px-2 py-2 text-center tabular-nums font-semibold">{row.match_points}</td>
+						<td class="px-2 py-2 text-center tabular-nums font-semibold text-gray-900 dark:text-white">{row.match_points}</td>
 						{#if mode !== 'winner'}
 							<td class="px-2 pr-4 sm:pr-2 py-2 text-center tabular-nums whitespace-nowrap">{row.games_won}–{row.games_lost}</td>
 						{/if}
