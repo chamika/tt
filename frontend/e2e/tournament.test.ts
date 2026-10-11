@@ -235,5 +235,47 @@ test.describe('Tournament Brackets', () => {
 			const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 			expect(overflow).toBeLessThanOrEqual(0);
 		});
+
+		test('gives player names room in the setup form', async ({ page }) => {
+			await page.goto('/tournament/new', { waitUntil: 'networkidle' });
+			await page.getByRole('radio', { name: /^Handicap/ }).check({ force: true });
+			const name = await page.getByLabel('Player 1 name').boundingBox();
+			const handicap = await page.getByLabel('Player 1 handicap').boundingBox();
+			expect(name!.width).toBeGreaterThan(handicap!.width);
+		});
+
+		test('finds a player’s matches and types over the handicap start', async ({ page, request }) => {
+			const id = await createTournament(request, {
+				name: 'E2E Phone Groups',
+				format: 'groups',
+				seeding_mode: 'handicap',
+				score_mode: 'points',
+				best_of: 3,
+				group_count: 2,
+				advance_per_group: 2,
+				players: [-6, -3, 0, 2, 4, 6, 8, 10].map((h) => ({ name: `H${h}`, handicap: h }))
+			});
+
+			await page.goto(`/tournament/${id}`, { waitUntil: 'networkidle' });
+			await page.getByLabel('Show matches for').selectOption({ label: 'H10' });
+			const ready = page.getByTestId('matches-ready').getByTestId('match-card');
+			await expect(ready).toHaveCount(3);
+
+			// H-6 v H10 starts 0-16 to 17. A tap then typing replaces the start score rather than adding to it
+			await ready.filter({ hasText: 'H-6' }).getByRole('button', { name: 'Enter result' }).click();
+			const dialog = page.getByRole('dialog');
+			const field = dialog.getByLabel('Game 1 H10');
+			await field.tap();
+			// The field selects itself on the next frame, well before a person's keyboard has opened
+			await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+			await page.keyboard.type('17');
+			await expect(field).toHaveValue('17');
+
+			// The group tables fit without scrolling sideways
+			await dialog.getByRole('button', { name: 'Cancel' }).click();
+			await openTab(page, 'Groups');
+			const table = page.getByTestId('group-table').first().locator('.overflow-x-auto');
+			expect(await table.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+		});
 	});
 });

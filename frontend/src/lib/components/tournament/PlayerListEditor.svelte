@@ -80,8 +80,11 @@
 		}
 	}
 
-	const inputClass =
-		'w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white disabled:opacity-50';
+	// Width and side padding are left to each field: a shared w-full or px-3 would
+	// beat the narrower values the ranking box sets on phones
+	const fieldClass =
+		'py-2 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white disabled:opacity-50';
+	const inputClass = `w-full px-3 ${fieldClass}`;
 </script>
 
 <div class="space-y-3">
@@ -95,7 +98,7 @@
 				type="button"
 				onclick={() => ((pasteOpen = !pasteOpen), (importOpen = false))}
 				{disabled}
-				class="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+				class="flex items-center gap-1 px-2 py-2 text-xs font-medium rounded-md whitespace-nowrap text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
 			>
 				<ClipboardPaste size={14} /> Paste list
 			</button>
@@ -103,7 +106,7 @@
 				type="button"
 				onclick={() => ((importOpen = !importOpen), (pasteOpen = false))}
 				{disabled}
-				class="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+				class="flex items-center gap-1 px-2 py-2 text-xs font-medium rounded-md whitespace-nowrap text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
 			>
 				<Users size={14} /> From a team
 			</button>
@@ -162,6 +165,9 @@
 					placeholder="Name"
 					aria-label="Player {i + 1} name"
 					maxlength="60"
+					autocomplete="off"
+					autocapitalize="words"
+					enterkeyhint="next"
 					{disabled}
 					class="{inputClass} flex-1 min-w-0"
 				/>
@@ -171,15 +177,17 @@
 					bind:value={row.value}
 					placeholder={valueLabel}
 					aria-label="Player {i + 1} {valueLabel.toLowerCase()}"
+					autocomplete="off"
+					enterkeyhint="next"
 					{disabled}
-					class="{inputClass} w-24 sm:w-28 text-center"
+					class="{fieldClass} w-24 sm:w-28 px-2 flex-shrink-0 text-center"
 				/>
 				<button
 					type="button"
 					onclick={() => removeRow(i)}
 					{disabled}
 					aria-label="Remove player {i + 1}"
-					class="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
+					class="p-2.5 -mr-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
 				>
 					<Trash2 size={16} />
 				</button>

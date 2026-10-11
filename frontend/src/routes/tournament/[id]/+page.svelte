@@ -48,6 +48,39 @@
 	const playersById = $derived(new Map((view?.players ?? []).map((p) => [p.id, p])));
 	const champion = $derived(view?.champion_id ? playersById.get(view.champion_id) : undefined);
 	const lists = $derived(view ? matchLists(view) : null);
+
+	// A player looking for their own matches, remembered on this phone for this tournament
+	const filterKey = `tournament:${tournamentId}:player`;
+	let playerFilter = $state(readFilter());
+	const filterPlayer = $derived(playerFilter ? playersById.get(playerFilter) : undefined);
+	const shownLists = $derived.by(() => {
+		if (!lists || !filterPlayer) return lists;
+		const involves = (m: Match) => m.player_a_id === filterPlayer.id || m.player_b_id === filterPlayer.id;
+		return {
+			ready: lists.ready.filter(involves),
+			pending: lists.pending.filter(involves),
+			completed: lists.completed.filter(involves)
+		};
+	});
+	const playersByName = $derived([...(view?.players ?? [])].sort((x, y) => x.name.localeCompare(y.name)));
+
+	function readFilter(): string {
+		try {
+			return localStorage.getItem(filterKey) ?? '';
+		} catch {
+			return '';
+		}
+	}
+
+	function setFilter(id: string) {
+		playerFilter = id;
+		try {
+			if (id) localStorage.setItem(filterKey, id);
+			else localStorage.removeItem(filterKey);
+		} catch {
+			// Private browsing: the filter just isn't remembered
+		}
+	}
 	const tabs = $derived<{ id: Tab; label: string }[]>([
 		{ id: 'draw', label: 'Draw' },
 		...(tournament?.format === 'groups' ? [{ id: 'groups' as Tab, label: 'Groups' }] : []),
@@ -251,14 +284,14 @@
 			<div class="flex gap-2 flex-shrink-0">
 				<button
 					onclick={copyLink}
-					class="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-100"
+					class="flex items-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-100"
 				>
 					<Link size={16} /> Copy link
 				</button>
 				<button
 					onclick={() => load(true)}
 					aria-label="Refresh"
-					class="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-100"
+					class="p-2.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-gray-100"
 				>
 					<RefreshCw size={16} />
 				</button>
@@ -275,8 +308,10 @@
 			</div>
 		{/if}
 
-		<!-- Tabs -->
-		<div class="mb-6 border-b border-gray-200 dark:border-slate-700">
+		<!-- Tabs: stay under the header while the page scrolls -->
+		<div
+			class="sticky top-20 z-40 -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 bg-gray-50/95 dark:bg-slate-900/95 backdrop-blur border-b border-gray-200 dark:border-slate-700"
+		>
 			<nav class="flex gap-4 sm:gap-8 overflow-x-auto" aria-label="Tabs">
 				{#each tabs as { id, label } (id)}
 					<button
@@ -349,7 +384,7 @@
 			{/if}
 
 			{#if editing}
-				<div class="max-w-2xl bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-6">
+				<div class="max-w-2xl bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
 					<TournamentForm
 						initialSettings={tournament}
 						initialRows={rowsFromPlayers(view.players, tournament.seeding_mode)}
@@ -426,7 +461,26 @@
 			{#if isDraft}
 				<p class="mb-6 text-sm text-gray-600 dark:text-gray-400">Results can be entered once the tournament starts.</p>
 			{/if}
-			{#each [{ title: 'Up next', matches: lists.ready, id: 'ready' }, { title: 'Results', matches: lists.completed, id: 'completed' }, { title: 'Waiting for players', matches: lists.pending, id: 'pending' }] as section (section.id)}
+			<div class="mb-6 max-w-sm">
+				<label for="player-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Show matches for</label>
+				<select
+					id="player-filter"
+					value={filterPlayer ? filterPlayer.id : ''}
+					onchange={(e) => setFilter(e.currentTarget.value)}
+					class="w-full px-3 py-2.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
+				>
+					<option value="">Everyone</option>
+					{#each playersByName as player (player.id)}
+						<option value={player.id}>{player.name}</option>
+					{/each}
+				</select>
+			</div>
+			{#if filterPlayer && shownLists && shownLists.ready.length + shownLists.completed.length + shownLists.pending.length === 0}
+				<p class="mb-6 text-sm text-gray-600 dark:text-gray-400" data-testid="no-player-matches">
+					No matches for {filterPlayer.name} yet. They play once the players before them are decided.
+				</p>
+			{/if}
+			{#each [{ title: 'Up next', matches: shownLists?.ready ?? [], id: 'ready' }, { title: 'Results', matches: shownLists?.completed ?? [], id: 'completed' }, { title: 'Waiting for players', matches: shownLists?.pending ?? [], id: 'pending' }] as section (section.id)}
 				{#if section.matches.length > 0}
 					<section class="mb-8" data-testid="matches-{section.id}">
 						<h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4">

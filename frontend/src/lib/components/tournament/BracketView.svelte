@@ -26,17 +26,27 @@
 	let selectedRound = $state<number | null>(null);
 	const shownRound = $derived(selectedRound ?? currentRound());
 	const shownColumn = $derived(columns.find((c) => c.round.round === shownRound));
+
+	// Later rounds start off-screen in the selector; bring the shown one into view
+	let selector = $state<HTMLElement>();
+	// (scrolling the row itself, so a background refresh never moves the page)
+	$effect(() => {
+		const pill = selector?.querySelector<HTMLElement>(`[data-round="${shownRound}"]`);
+		if (!selector || !pill) return;
+		selector.scrollTo({ left: pill.offsetLeft - (selector.clientWidth - pill.offsetWidth) / 2, behavior: 'smooth' });
+	});
 </script>
 
 <!-- Phones: round selector -->
 <div class="md:hidden">
-	<div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" role="tablist" aria-label="Rounds">
+	<div bind:this={selector} class="relative flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" role="tablist" aria-label="Rounds">
 		{#each columns as column (column.round.round)}
 			<button
 				role="tab"
 				aria-selected={shownRound === column.round.round}
+				data-round={column.round.round}
 				onclick={() => (selectedRound = column.round.round)}
-				class="px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors {shownRound ===
+				class="px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-colors {shownRound ===
 				column.round.round
 					? 'bg-emerald-600 text-white'
 					: 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300'}"
@@ -48,7 +58,8 @@
 	{#if shownColumn}
 		<div class="mt-3 space-y-3">
 			{#each shownColumn.matches as match (match.id)}
-				<MatchCard {match} {view} {onOpen} />
+				<!-- Byes have nothing to enter, so they take less room -->
+				<MatchCard {match} {view} {onOpen} compact={match.is_bye} />
 			{/each}
 		</div>
 	{/if}
