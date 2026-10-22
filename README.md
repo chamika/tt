@@ -33,12 +33,22 @@ Run club tournaments from a shareable link.
 - Winners move on automatically; group standings use ITTF tie-breaks
 - Review and re-draw a draft before starting; enter results from any phone
 
+### 4. Team Match Card ✅
+Score a league-style team match from a shareable link, like the ELTTL match card.
+
+**Features:**
+- Two teams of three: home A, B, C play away X, Y, Z in 9 singles plus a doubles, each best of 5
+- Enter rubbers in any order from any phone; the running score and each player's wins update as you go
+- All 10 rubbers are played, so a match can end in a 5-5 draw
+- Pick the doubles pairs when the doubles is entered; correct names at any time without losing results
+
 ## Documentation
 
 - **[Availability Tracker Guide](./docs/AVAILABILITY_TRACKER.md)** - Complete feature documentation
 - **[API Documentation](./docs/API.md)** - REST API reference
 - **[User Guide](./docs/USER_GUIDE.md)** - Step-by-step usage instructions
 - **[Tournament Brackets Plan](./design/tournament-brackets/Plan.md)** - Design, defaults and manual test checklist
+- **[Team Match Card Plan](./design/team-match/Plan.md)** - Design and defaults for team matches
 - **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[TODO List](./design/availability-tracker/TODO.md)** - Implementation progress
 
@@ -52,7 +62,8 @@ tt/
 │   │   ├── routes/    # Page routes
 │   │   │   ├── availability/  # Availability tracker pages
 │   │   │   ├── handicap/      # Handicap calculator page
-│   │   │   └── tournament/    # Tournament brackets pages
+│   │   │   ├── tournament/    # Tournament brackets pages
+│   │   │   └── team-match/    # Team match card pages
 │   │   └── lib/       # Shared components and utilities
 │   └── e2e/           # Playwright E2E tests
 ├── worker/            # Cloudflare Worker API
@@ -61,6 +72,7 @@ tt/
 │       ├── database.ts   # D1 database service
 │       ├── scraper.ts    # ELTTL scraper
 │       ├── tournament/   # Tournament engine, storage and API routes
+│       ├── teamMatch/    # Team match card rules, storage and API routes
 │       └── *.test.ts     # Unit and integration tests
 ├── shared/            # Code used by both (handicap calculator)
 ├── docs/              # Documentation

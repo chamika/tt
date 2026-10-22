@@ -104,3 +104,18 @@ INSERT INTO tournament_matches (id, tournament_id, stage, group_index, round, po
   ('demo-sf1', '00000000-0000-0000-0000-00000000c0de', 'knockout', NULL, 1, 0, 'demo-player-1', 'demo-player-4', NULL, NULL, 'demo-final', 'a', 0, NULL, NULL, NULL, NULL, NULL, strftime('%s', 'now') * 1000),
   ('demo-sf2', '00000000-0000-0000-0000-00000000c0de', 'knockout', NULL, 1, 1, 'demo-player-2', 'demo-player-3', NULL, NULL, 'demo-final', 'b', 0, NULL, NULL, NULL, NULL, NULL, strftime('%s', 'now') * 1000),
   ('demo-final', '00000000-0000-0000-0000-00000000c0de', 'knockout', NULL, 2, 0, NULL, NULL, 'winner:demo-sf1', 'winner:demo-sf2', NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, strftime('%s', 'now') * 1000);
+
+-- Demo team match for manual testing: Hornets v Wasps with the first 3 rubbers entered
+-- Open /team-match/00000000-0000-0000-0000-0000000073a3
+DELETE FROM team_match_rubbers WHERE match_id = '00000000-0000-0000-0000-0000000073a3';
+DELETE FROM team_matches WHERE id = '00000000-0000-0000-0000-0000000073a3';
+
+INSERT INTO team_matches (id, title, match_date, home_team, away_team, home_players, away_players, created_at, updated_at)
+VALUES ('00000000-0000-0000-0000-0000000073a3', 'Demo Division 3', '2026-10-22', 'Hornets', 'Wasps',
+  '["Alice Anderson","Bob Brown","Charlie Chen"]', '["Xavier Xu","Yasmin Young","Zack Zhang"]',
+  strftime('%s', 'now') * 1000, strftime('%s', 'now') * 1000);
+
+INSERT INTO team_match_rubbers (match_id, number, game_scores, home_games, away_games, winner, home_pair, away_pair, updated_at) VALUES
+  ('00000000-0000-0000-0000-0000000073a3', 1, '[{"a":11,"b":7},{"a":9,"b":11},{"a":11,"b":5},{"a":11,"b":8}]', 3, 1, 'home', NULL, NULL, strftime('%s', 'now') * 1000),
+  ('00000000-0000-0000-0000-0000000073a3', 2, '[{"a":6,"b":11},{"a":8,"b":11},{"a":10,"b":12}]', 0, 3, 'away', NULL, NULL, strftime('%s', 'now') * 1000),
+  ('00000000-0000-0000-0000-0000000073a3', 3, '[{"a":11,"b":9},{"a":11,"b":13},{"a":11,"b":6},{"a":7,"b":11},{"a":11,"b":9}]', 3, 2, 'home', NULL, NULL, strftime('%s', 'now') * 1000);
