@@ -31,7 +31,7 @@
 
 		<ToolCard
 			title="Tournament Brackets"
-			description="Run knockout or group-stage club tournaments, seeded by ranking or by handicap with starting scores for every match."
+			description="Run knockout or group-stage club tournaments, seeded by ranking or by handicap, or score a league-style team match card."
 			icon={Trophy}
 			href="/tournament"
 			badge="New"

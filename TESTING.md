@@ -81,8 +81,9 @@ npm test                        # Runs unit + E2E tests
 - `tournament/*.test.ts` - Tournament engine: seeding, knockout, groups, standings, handicap, results, advancement and view
 - `tournament/routes.test.ts` - Tournament API with a mocked repository
 - `tournament/tournament.d1.test.ts` - Tournament API against a real in-memory D1 database, including concurrent writes
+- `teamMatch/*.test.ts` - Team match card: rubber order and validation, the computed card, and the API against real D1
 
-**Total: 313 tests**
+**Total: 367 tests**
 
 The `*.d1.test.ts` integration tests use `createTestD1()` from `src/test/d1.ts`, which starts
 Miniflare's in-memory D1 and applies `schema.sql`. They need no running services.
@@ -91,8 +92,9 @@ Miniflare's in-memory D1 and applies `schema.sql`. They need no running services
 
 - `lib/handicap/scoreCalculator.test.ts` - Handicap calculations (10 tests; the calculator itself lives in `shared/handicap/`)
 - `lib/tournament/*.test.ts` - Bracket layout, player list parsing and score formatting
+- `lib/teamMatch/card.test.ts` - Team match card helpers and pasted-link routing
 
-**Total: 36 tests**
+**Total: 50 tests**
 
 ### E2E Tests (`frontend/e2e/`)
 
@@ -103,8 +105,10 @@ Miniflare's in-memory D1 and applies `schema.sql`. They need no running services
 - `tournament.test.ts` - Tournament Brackets: creating from the form, handicap starts and score validation,
   group qualification, tie ordering, setup errors, and a phone viewport (7 tests). Each test creates its own
   tournament through the API, so only the worker needs to be running.
+- `teamMatch.test.ts` - Team Match Card: creating from the form, singles and doubles entry, score validation,
+  a 5-5 draw, name corrections, pasted links, and a phone viewport (6 tests)
 
-**Total: 23 E2E tests** (including the demo test file)
+**Total: 32 E2E tests** (including the demo test file)
 
 ## Test Coverage
 

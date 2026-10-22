@@ -1,19 +1,20 @@
 <!-- Tournament Brackets Landing Page -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Trophy } from 'lucide-svelte';
+	import { Trophy, Users } from 'lucide-svelte';
+	import { pathForLink } from '$lib/tournament/links';
 
 	let link = $state('');
 	let linkError = $state<string | null>(null);
 
 	function openTournament(e: SubmitEvent) {
 		e.preventDefault();
-		const match = link.trim().match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-		if (!match) {
-			linkError = 'Paste the tournament link you were sent, e.g. …/tournament/1234abcd-…';
+		const path = pathForLink(link);
+		if (!path) {
+			linkError = 'Paste the link you were sent, e.g. …/tournament/1234abcd-… or …/team-match/1234abcd-…';
 			return;
 		}
-		goto(`/tournament/${match[1]}`);
+		goto(path);
 	}
 
 	const steps = [
@@ -51,12 +52,12 @@
 		</a>
 
 		<form onsubmit={openTournament} class="max-w-md mx-auto mt-6 flex gap-2">
-			<label for="tournament-link" class="sr-only">Tournament link</label>
+			<label for="tournament-link" class="sr-only">Tournament or match link</label>
 			<input
 				id="tournament-link"
 				type="text"
 				bind:value={link}
-				placeholder="Or paste a tournament link"
+				placeholder="Or paste a tournament or match link"
 				class="flex-1 min-w-0 px-4 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-emerald-500 outline-none text-gray-900 dark:text-white"
 			/>
 			<button
@@ -84,6 +85,27 @@
 					<p class="text-gray-600 dark:text-gray-400">{step.text}</p>
 				</div>
 			{/each}
+		</div>
+	</div>
+
+	<div class="max-w-4xl mx-auto mt-12" data-testid="team-match-entry">
+		<div class="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center gap-5">
+			<div class="p-3 self-start bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+				<Users size={32} />
+			</div>
+			<div class="flex-1">
+				<h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Team Match Card</h3>
+				<p class="text-gray-600 dark:text-gray-400">
+					A league-style match between two teams of three, scored like the league match card: 9 singles and a doubles,
+					each best of 5, with a running score. Enter rubbers from any phone as the tables finish.
+				</p>
+			</div>
+			<a
+				href="/team-match/new"
+				class="flex-shrink-0 text-center px-6 py-3 bg-white hover:bg-emerald-50 text-emerald-700 border-2 border-emerald-600 font-bold rounded-xl dark:bg-slate-800 dark:hover:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-500 transition-colors"
+			>
+				Create a Team Match
+			</a>
 		</div>
 	</div>
 </div>
