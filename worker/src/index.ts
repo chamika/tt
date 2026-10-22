@@ -7,6 +7,7 @@ import { computePlayerPlan, computeSyncPlan, describeSyncPlan } from './sync';
 import { isValidELTTLUrl, parseMatchDate, isPastDate } from './utils';
 import { log } from './log';
 import tournamentRoutes from './tournament/routes';
+import teamMatchRoutes from './teamMatch/routes';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -537,5 +538,8 @@ app.get('/api/availability/:teamId/summary', async (c) => {
 
 // Tournament Brackets
 app.route('/api/tournaments', tournamentRoutes);
+
+// Team Match Card
+app.route('/api/team-matches', teamMatchRoutes);
 
 export default app;

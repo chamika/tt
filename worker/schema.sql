@@ -111,6 +111,37 @@ CREATE TABLE IF NOT EXISTS tournament_matches (
   FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE
 );
 
+-- Team matches: one league-style fixture between two teams of three, scored like
+-- the ELTTL match card (9 singles + 1 doubles). Players are kept by position:
+-- home_players is [A, B, C] and away_players is [X, Y, Z], as JSON arrays of names.
+CREATE TABLE IF NOT EXISTS team_matches (
+  id TEXT PRIMARY KEY,
+  title TEXT,
+  match_date TEXT,
+  home_team TEXT NOT NULL,
+  away_team TEXT NOT NULL,
+  home_players TEXT NOT NULL,
+  away_players TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Team match rubbers: one row per rubber with a result (1-10). In game_scores
+-- 'a' is the home side. The pairs (e.g. 'AB', 'XZ') are set for the doubles only.
+CREATE TABLE IF NOT EXISTS team_match_rubbers (
+  match_id TEXT NOT NULL,
+  number INTEGER NOT NULL CHECK (number BETWEEN 1 AND 10),
+  game_scores TEXT NOT NULL,
+  home_games INTEGER NOT NULL,
+  away_games INTEGER NOT NULL,
+  winner TEXT NOT NULL CHECK (winner IN ('home', 'away')),
+  home_pair TEXT,
+  away_pair TEXT,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (match_id, number),
+  FOREIGN KEY (match_id) REFERENCES team_matches(id) ON DELETE CASCADE
+);
+
 -- Indexes for performance optimization
 CREATE INDEX IF NOT EXISTS idx_fixtures_team_id ON fixtures(team_id);
 CREATE INDEX IF NOT EXISTS idx_fixtures_match_date ON fixtures(match_date);

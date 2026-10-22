@@ -615,6 +615,113 @@ or the knockout has started
 
 ---
 
+## Team Match Card
+
+One league-style match between two teams of three, scored like the ELTTL match card: home
+players A, B, C play away players X, Y, Z over 10 rubbers (9 singles, with the doubles as
+rubber 7), each best of 5 off scratch to 11. All 10 rubbers are played, so 5-5 is a draw.
+Shared by link, with no start step; every endpoint except create returns the **team match
+view** (below).
+
+Rubber order: 1 A-X, 2 B-Y, 3 C-Z, 4 B-X, 5 A-Z, 6 C-Y, 7 doubles, 8 B-Z, 9 C-X, 10 A-Y.
+
+### 15. Create Team Match
+
+**Endpoint**: `POST /api/team-matches`
+
+**Request Body**:
+```json
+{
+  "title": "Division 3",
+  "match_date": "2026-10-22",
+  "home_team": "Hornets",
+  "away_team": "Wasps",
+  "home_players": ["Ann", "Bea", "Cat"],
+  "away_players": ["Xan", "Yaz", "Zoe"]
+}
+```
+- `title` and `match_date` (`YYYY-MM-DD`) are optional
+- `home_players` is A, B, C and `away_players` is X, Y, Z: exactly 3 names each, unique within
+  the team
+
+**Response**: `201 Created` - `{ "success": true, "id": "...", "redirect": "/team-match/..." }`
+
+**Error Responses**: `400` with a message saying what to fix
+
+### 16. Get Team Match
+
+**Endpoint**: `GET /api/team-matches/:id`
+
+**Response**: `200 OK` - the team match view:
+```json
+{
+  "match": { "id": "...", "title": "Division 3", "match_date": "2026-10-22", "home_team": "Hornets",
+             "away_team": "Wasps", "home_players": ["Ann", "Bea", "Cat"], "away_players": ["Xan", "Yaz", "Zoe"],
+             "created_at": 0, "updated_at": 0 },
+  "home_players": [{ "label": "A", "name": "Ann", "won": 2 }],
+  "away_players": [{ "label": "X", "name": "Xan", "won": 1 }],
+  "rubbers": [
+    {
+      "number": 1,
+      "is_doubles": false,
+      "home": { "labels": ["A"], "names": ["Ann"] },
+      "away": { "labels": ["X"], "names": ["Xan"] },
+      "result": { "number": 1, "game_scores": [{ "a": 11, "b": 7 }, { "a": 9, "b": 11 }, { "a": 11, "b": 5 }, { "a": 11, "b": 8 }],
+                  "home_games": 3, "away_games": 1, "winner": "home", "home_pair": null, "away_pair": null },
+      "running": { "home": 1, "away": 0 }
+    }
+  ],
+  "score": { "home": 1, "away": 0 },
+  "played": 1,
+  "status": "in_progress",
+  "outcome": null
+}
+```
+- `rubbers`: always all 10, in card order. `result` is null until the rubber is entered. In
+  `game_scores`, `a` is the home side.
+- The doubles (rubber 7) has empty `labels` until its pairs are entered, e.g. `["A", "C"]`.
+- `running`: the match score after this row, counting the rubbers entered up to it
+- `won`: each player's singles wins (the card's "Won" column; the doubles isn't counted)
+- `status`: `not_started`, `in_progress` or `completed` (all 10 entered)
+- `outcome`: `home`, `away` or `draw` once completed, otherwise null
+
+**Error Responses**: `404 Not Found`
+
+### 17. Update Team Match
+
+Correct the title, date, team or player names. Results are kept by position (A, B, C / X, Y, Z),
+so renaming a player keeps their rubbers.
+
+**Endpoint**: `PUT /api/team-matches/:id` - same body as Create. **Response**: the team match view.
+
+**Error Responses**: `400`, `404`
+
+### 18. Record a Rubber
+
+Record or correct a rubber. Rubbers can be entered in any order.
+
+**Endpoint**: `PUT /api/team-matches/:id/rubbers/:number` (`number` 1-10)
+
+**Request Body**:
+```json
+{ "game_scores": [{ "a": 11, "b": 7 }, { "a": 9, "b": 11 }, { "a": 12, "b": 10 }, { "a": 11, "b": 4 }] }
+{ "game_scores": [...], "home_pair": "AC", "away_pair": "YZ" }
+```
+The second form is for the doubles, where both pairs are required. Games follow the same rules
+as a scratch tournament match (to 11, 2 clear), and must make a finished best of 5.
+
+**Response**: the team match view.
+
+**Error Responses**: `400` the score or pairs aren't valid, `404` match or rubber not found
+
+### 19. Clear a Rubber
+
+**Endpoint**: `DELETE /api/team-matches/:id/rubbers/:number` - **Response**: the team match view.
+
+**Error Responses**: `404`, `409` the rubber has no result
+
+---
+
 ## Data Types
 
 ### Team
@@ -730,6 +837,10 @@ Logs are accessible via Cloudflare Workers dashboard.
 ---
 
 ## Changelog
+
+### v1.3.0 (October 2026)
+- Added the Team Match Card: `/api/team-matches` endpoints for a league-style match between
+  two teams of three (9 singles + 1 doubles)
 
 ### v1.2.0 (October 2026)
 - Added Tournament Brackets: `/api/tournaments` endpoints for knockout and group tournaments,
